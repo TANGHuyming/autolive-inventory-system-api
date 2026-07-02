@@ -18,8 +18,6 @@ class TransactionController extends Controller
             "first_name" => $request->query("first_name"),
             "last_name" => $request->query("last_name"),
             "telephone" => $request->query("telephone"),
-            "quantity" => $request->query("quantity"),
-            "quantity_filter" => $request->query("quantity_filter"),
             "transaction_date" => $request->query("transaction_date"),
             "inventory_id" => $request->query("inventory_id"),
         ];
@@ -34,13 +32,6 @@ class TransactionController extends Controller
             })
             ->when($data["telephone"], function ($q, $v) {
                 return $q->where("telephone", "=", $v);
-            })
-            ->when($data["quantity"], function ($q, $v) use ($data) {
-                if ($data["quantity_filter"] == "gte") {
-                    return $q->where("quantity", ">=", $v);
-                } else {
-                    return $q->where("quantity", "<=", $v);
-                }
             })
             ->when($data["transaction_date"], function ($q, $v) {
                 return $q->whereBetween("transaction_date", [$v, now()]);

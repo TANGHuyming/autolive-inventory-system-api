@@ -1,13 +1,24 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\AuthController;
 
-Route::apiResource('/inventories', InventoryController::class);
-Route::apiResource('/transactions', TransactionController::class);
-Route::apiResource('/employees', EmployeeController::class);
-Route::apiResource('/warehouses', WarehouseController::class);
+Route::prefix("auth")->group(function () {
+    Route::post("login", [AuthController::class, "login"]);
+    Route::post("register", [AuthController::class, "register"]);
+
+    Route::middleware("auth:sanctum")->group(function () {
+        Route::get("logout", [AuthController::class, "logout"]);
+    });
+});
+
+Route::middleware("auth:sanctum")->group(function () {
+    Route::apiResource('inventories', InventoryController::class);
+    Route::apiResource('transactions', TransactionController::class);
+    Route::apiResource('employees', EmployeeController::class);
+    Route::apiResource('warehouses', WarehouseController::class);
+});

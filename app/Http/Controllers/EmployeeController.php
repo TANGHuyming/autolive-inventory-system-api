@@ -10,10 +10,31 @@ class EmployeeController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         //
-        $employees = Employee::all();
+        $data = [
+            "first_name" => $request->query("first_name"),
+            "last_name" => $request->query("last_name"),
+            "email" => $request->query("email"),
+            "telephone" => $request->query("telephone"),
+        ];
+
+        $query = Employee::query()
+            ->when($data["first_name"], function ($q, $v) {
+                return $q->where("first_name", "ILIKE", "%{$v}%");
+            })
+            ->when($data["last_name"], function ($q, $v) {
+                return $q->where("last_name", "ILIKE", "%{$v}%");
+            })
+            ->when($data["email"], function ($q, $v) {
+                return $q->where("email", "ILIKE", "%{$v}%");
+            })
+            ->when($data["telephone"], function ($q, $v) {
+                return $q->where("telephone", "=", $v);
+            });
+
+        $employees = $query->get();
         return response()->json($employees);
     }
 
