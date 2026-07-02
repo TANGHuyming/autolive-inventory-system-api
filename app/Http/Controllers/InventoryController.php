@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Http\Requests\InventoryRequest;
 use App\Models\Inventory;
 
 class InventoryController extends Controller
@@ -14,6 +15,8 @@ class InventoryController extends Controller
     {
         // search queries
         $data = [
+            'page'         => $request->query('page', 1),
+            'pageSize'     => $request->query('pageSize', 10),
             'nameEn'       => $request->query('nameEn'),
             'make'         => $request->query('make'),
             'model'        => $request->query('model'),
@@ -24,6 +27,7 @@ class InventoryController extends Controller
             'acquired_date' => $request->query('acquired_date'),
             'transaction_id' => $request->query('transaction_id'),
         ];
+        $pageOffset = ($data["page"] - 1) * $data["pageSize"];
 
         // query builder
         $query = Inventory::query()
@@ -60,33 +64,30 @@ class InventoryController extends Controller
                 });
             });
 
-        $inventory = $query->get();
+        $inventory = $query->limit($data["pageSize"])->skip($pageOffset)->get();
         return response()->json($inventory);
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(InventoryRequest $request)
     {
-        //
-        $validated = $request->validate([
-            "warehouse_id" => "string|required|max:255",
-            "nameEn" => "string|required|max:255",
-            "nameKh" => "string|nullable|max:255",
-            "make" => "string|required|max:100",
-            "model" => "string|required|max:100",
-            "year" => "string|required|numeric|digits:4",
-            "code" => "string|required|unique:inventories,code|max:50",
-            "quantity" => "integer|min:0",
-            "shelf" => "string|required|alpha",
-            "bay" => "string|required|numeric|digits:4",
-            "picture_url" => "string|nullable",
-            "acquired_date" => "date|nullable",
-        ]);
+        //Sanitize data
+        $validated = $request->validated();
+        $item = collect($validated)->map(function ($value, $key) {
+            $sanitizedItem = null;
+            if (is_string($value)) {
+                $sanitizedItem = trim($value);
+                $sanitizedItem = strtoupper($value[0]) . strtolower(substr($value, 1, null));
+            } else {
+                $sanitizedItem = $value;
+            }
+            return $sanitizedItem;
+        });
 
         $createdInventory = Inventory::create(
-            $validated,
+            $item->all()
         );
 
         return response()->json($createdInventory);
@@ -103,25 +104,22 @@ class InventoryController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Inventory $inventory, Request $request)
+    public function update(Inventory $inventory, InventoryRequest $item)
     {
-        $validated = $request->validate([
-            "warehouse_id" => "string|required|max:255",
-            "nameEn" => "string|required|max:255",
-            "nameKh" => "string|nullable|max:255",
-            "make" => "string|required|max:100",
-            "model" => "string|required|max:100",
-            "year" => "string|required|numeric|digits:4",
-            "code" => "string|required|unique:inventories,code|max:50",
-            "quantity" => "integer|min:0",
-            "shelf" => "string|required|alpha",
-            "bay" => "string|required|numeric|digits:4",
-            "picture_url" => "string|nullable",
-            "acquired_date" => "date|nullable",
-        ]);
+        //Sanitize data
+        $item = collect($item)->map(function ($value, $key) {
+            $sanitizedItem = null;
+            if (is_string($value)) {
+                $sanitizedItem = trim($value);
+                $sanitizedItem = strtoupper($value[0]) . strtolower(substr($value, 1, null));
+            } else {
+                $sanitizedItem = $value;
+            }
+            return $sanitizedItem;
+        });
 
         $inventory->update(
-            $validated
+            $item->all()
         );
 
         return response()->noContent();
