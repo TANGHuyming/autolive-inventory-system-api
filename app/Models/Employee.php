@@ -2,13 +2,16 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use App\Models\Transaction;
 
-class Employee extends Model
+class Employee extends Authenticatable
 {
-    //
+    use HasApiTokens;
+
     protected $fillable = ["first_name", "last_name", "email", "telephone", "password"];
+    protected $hidden = ["password"];
 
     public function transactions()
     {
