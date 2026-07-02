@@ -104,10 +104,11 @@ class InventoryController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Inventory $inventory, InventoryRequest $item)
+    public function update(Inventory $inventory, InventoryRequest $request)
     {
+        $validated = $request->validated();
         //Sanitize data
-        $item = collect($item)->map(function ($value, $key) {
+        $item = collect($validated)->map(function ($value, $key) {
             $sanitizedItem = null;
             if (is_string($value)) {
                 $sanitizedItem = trim($value);
