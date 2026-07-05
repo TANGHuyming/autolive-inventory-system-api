@@ -26,7 +26,7 @@ class Inventory extends Model
         "picture_url",
     ];
 
-    public function warehouse()
+    public function warehouses()
     {
         return $this->belongsTo(Warehouse::class);
     }

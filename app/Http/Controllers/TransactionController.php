@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use Illuminate\Http\Request;
+use App\Http\Requests\TransactionRequest;
 use App\Models\Transaction;
 use App\Models\Inventory;
 
@@ -51,24 +52,16 @@ class TransactionController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(TransactionRequest $request)
     {
         //
-        $validated = $request->validate([
-            "inventory_ids" => "required|array",
-            "employee_id" => "required|string|max:255",
-            "warehouse_id" => "required|string|max:255",
-            "first_name" => "required|string|max:255",
-            "last_name" => "required|string|max:255",
-            "telephone" => "required|string|max:15",
-            "transaction_date" => "required|date",
-        ]);
+        $validated = $request->validated();
 
         try {
             $createdTransaction = DB::transaction(function () use ($validated) {
                 $syncData = [];
 
-                foreach ($validated["inventory_ids"] as $inventory_id) {
+                foreach (collect($validated["inventory_ids"])->all() as $inventory_id) {
                     // check the availability of each item
                     $item = Inventory::where("id", $inventory_id["inventory_id"])->lockForUpdate()->first();
 
@@ -93,7 +86,6 @@ class TransactionController extends Controller
                     }
 
                     $syncData[$item->id] = ["quantity" => $inventory_id["quantity"]];
-
                     $item->decrement("quantity", $inventory_id["quantity"]);
                 };
 
@@ -118,29 +110,18 @@ class TransactionController extends Controller
      */
     public function show(Transaction $transaction)
     {
-        //
-        $items = $transaction->inventories;
-        dd($items);
         return response()->json($transaction);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Transaction $transaction)
+    public function update(TransactionRequest $request, Transaction $transaction)
     {
         //
-        $validated = $request->validate([
-            "inventory_ids" => "required|array",
-            "employee_id" => "required|string|max:255",
-            "warehouse_id" => "required|string|max:255",
-            "first_name" => "required|string|max:255",
-            "last_name" => "required|string|max:255",
-            "telephone" => "required|string|max:15",
-            "transaction_date" => "required|date",
-        ]);
+        $validated = $request->validated();
 
-        $transaction->update($validated);
+        $transaction->update(collect($validated)->all());
         $transaction->inventories()->sync($validated["inventory_ids"]);
 
         return response()->noContent();

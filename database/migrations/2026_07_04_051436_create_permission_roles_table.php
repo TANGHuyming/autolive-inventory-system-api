@@ -10,8 +10,11 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::table('inventories', function (Blueprint $table) {
-            $table->dropColumn("acquired_date");
+        Schema::create('permission_roles', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId("permission_id")->constrained("permissions");
+            $table->foreignId("role_id")->constrained("roles");
+            $table->timestamps();
         });
     }
 
@@ -20,8 +23,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::table('inventories', function (Blueprint $table) {
-            $table->dateTime("acquired_date")->nullable();
-        });
+        Schema::dropIfExists('permission_roles');
     }
 };

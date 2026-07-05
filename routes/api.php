@@ -6,6 +6,7 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\RoleController;
 
 Route::prefix("auth")->group(function () {
     Route::post("login", [AuthController::class, "login"]);
@@ -21,4 +22,5 @@ Route::middleware("auth:sanctum")->group(function () {
     Route::apiResource('transactions', TransactionController::class);
     Route::apiResource('employees', EmployeeController::class);
     Route::apiResource('warehouses', WarehouseController::class);
+    Route::apiResource('roles', RoleController::class);
 });

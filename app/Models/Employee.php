@@ -6,6 +6,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Transaction;
+use App\Models\Role;
 
 class Employee extends Authenticatable
 {
@@ -18,5 +19,10 @@ class Employee extends Authenticatable
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
+    }
+
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, "employee_roles");
     }
 }

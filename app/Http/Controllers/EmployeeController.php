@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use App\Models\Employee;
+use App\Http\Requests\EmployeeRequest;
 
 class EmployeeController extends Controller
 {
@@ -39,28 +41,6 @@ class EmployeeController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-        $validated = $request->validate([
-            "first_name" => "required|max:255|string",
-            "last_name" => "required|max:255|string",
-            "email" => "required|max:255|email|string",
-            "telephone" => "required|string|max:15",
-            "password" => "required|string|max:255",
-        ]);
-
-        // create the record
-        $createdEmployee = Employee::create(
-            $validated,
-        );
-
-        return response()->json($createdEmployee);
-    }
-
-    /**
      * Display the specified resource.
      */
     public function show(Employee $employee)
@@ -72,17 +52,11 @@ class EmployeeController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Employee $employee)
+    public function update(EmployeeRequest $request, Employee $employee)
     {
-        //
-        $validated = $request->validate([
-            "first_name" => "required|max:255|string",
-            "last_name" => "required|max:255|string",
-            "email" => "required|max:255|email:rfc,dns|string",
-            "telephone" => "required|string|max:15",
-            "password" => "required|string|max:255",
-        ]);
+        $validated = $request->validated();
 
+        $validated["password"] = Hash::make($validated["password"]);
 
         $employee->update(
             $validated,
@@ -96,9 +70,7 @@ class EmployeeController extends Controller
      */
     public function destroy(Employee $employee)
     {
-        //
         $employee->delete();
-
         return response()->noContent();
     }
 }

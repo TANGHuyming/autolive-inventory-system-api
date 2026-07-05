@@ -23,7 +23,6 @@ return new class extends Migration {
             $table->string("shelf");
             $table->string("bay");
             $table->string("picture_url")->nullable();
-            $table->dateTime("acquired_date")->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

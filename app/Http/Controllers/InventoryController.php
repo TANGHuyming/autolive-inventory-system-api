@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Requests\InventoryRequest;
 use App\Models\Inventory;
+use App\Models\Warehouse;
 
 class InventoryController extends Controller
 {
@@ -98,7 +99,16 @@ class InventoryController extends Controller
      */
     public function show(Inventory $inventory)
     {
-        return response()->json($inventory);
+        $warehouse = Warehouse::query()
+            ->where("id", $inventory->warehouse_id)->latest()->first();
+
+        $result = collect(["inventory" => $inventory->toArray(), "warehouse" => $warehouse->toArray()]);
+
+        return response()->json([
+            "success" => true,
+            "data" => $result,
+            "message" => "Item details queried successfully",
+        ]);
     }
 
     /**
@@ -131,7 +141,6 @@ class InventoryController extends Controller
      */
     public function destroy(Inventory $inventory)
     {
-        //
         $inventory->delete();
         return response()->noContent();
     }
