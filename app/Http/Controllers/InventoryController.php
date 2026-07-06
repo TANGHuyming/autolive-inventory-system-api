@@ -62,8 +62,12 @@ class InventoryController extends Controller
                 return $q->whereBetween("acquired_date", [$v, now()])->orderBy("acquired_date", "asc");
             });
 
-        $inventory = $query->limit($data["pageSize"])->skip($pageOffset)->orderBy("created_at", "DESC")->get();
-        return response()->json($inventory);
+        $inventories = $query->limit($data["pageSize"])->skip($pageOffset)->orderBy("created_at", "DESC")->get();
+        return response()->json([
+            "success" => true,
+            "data" => $inventories,
+            "message" => "Inventories retrieved successfully",
+        ]);
     }
 
     /**
@@ -108,7 +112,7 @@ class InventoryController extends Controller
 
         $transactions = $inventory->transactions()->limit($data["pageSize"])->skip($pageOffset)->orderBy("created_at", "DESC")->get();
 
-        $result = collect(["inventory" => $inventory->toArray(), "warehouse" => $warehouse->toArray(), "transactions" => $transactions->toArray()]);
+        $result = collect(["inventory" => $inventory, "warehouse" => $warehouse, "transactions" => $transactions]);
 
         return response()->json([
             "success" => true,

@@ -11,6 +11,9 @@ use App\Models\Inventory;
 
 class TransactionController extends Controller
 {
+    private $PAGE = 1;
+    private $PAGE_SIZE = 10;
+
     /**
      * Display a listing of the resource.
      */
@@ -18,12 +21,15 @@ class TransactionController extends Controller
     {
         //
         $data = [
+            "page" => $request->input("page", $this->PAGE),
+            "pageSize" => $request->input("pageSize", $this->PAGE_SIZE),
             "first_name" => $request->query("first_name"),
             "last_name" => $request->query("last_name"),
             "telephone" => $request->query("telephone"),
             "transaction_date" => $request->query("transaction_date"),
-            "inventory_id" => $request->query("inventory_id"),
         ];
+
+        $pageOffset = ($data["page"] - 1) * $data["pageSize"];
 
         $query = Transaction::query()
             ->with('inventories')
@@ -38,15 +44,14 @@ class TransactionController extends Controller
             })
             ->when($data["transaction_date"], function ($q, $v) {
                 return $q->whereBetween("transaction_date", [$v, now()]);
-            })
-            ->when($data["inventory_id"], function ($q, $v) {
-                return $q->whereHas("inventories", function ($q2) use ($v) {
-                    return $q2->where("inventory_id", $v);
-                });
             });
 
-        $transactions = $query->get();
-        return response()->json($transactions);
+        $transactions = $query->limit($data["pageSize"])->skip($pageOffset)->orderBy("created_at", "DESC")->get();
+        return response()->json([
+            "success" => true,
+            "data" => $transactions,
+            "message" => "Transactions retrieved successfully",
+        ]);
     }
 
     /**
@@ -108,9 +113,24 @@ class TransactionController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Transaction $transaction)
+    public function show(Transaction $transaction, Request $request)
     {
-        return response()->json($transaction);
+        $data = [
+            "page" => $request->input("page", $this->PAGE),
+            "pageSize" => $request->input("pageSize", $this->PAGE_SIZE),
+        ];
+
+        $pageOffset = ($data["page"] - 1) * $data["pageSize"];
+
+        $inventories = $transaction->inventories()->limit($data["pageSize"])->skip($pageOffset)->get();
+
+        $result = collect(["transaction" => $transaction, "inventories" => $inventories]);
+
+        return response()->json([
+            "success" => true,
+            "data" => $result,
+            "message" => "Transaction details retrieved successfully",
+        ]);
     }
 
     /**
