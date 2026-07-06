@@ -9,6 +9,9 @@ use App\Models\Warehouse;
 
 class InventoryController extends Controller
 {
+    private $PAGE = 1;
+    private $PAGE_SIZE = 10;
+
     /**
      * Display a listing of the resource.
      */
@@ -16,8 +19,8 @@ class InventoryController extends Controller
     {
         // search queries
         $data = [
-            'page'         => $request->query('page', 1),
-            'pageSize'     => $request->query('pageSize', 10),
+            'page'         => $request->query('page', $this->PAGE),
+            'pageSize'     => $request->query('pageSize', $this->PAGE_SIZE),
             'nameEn'       => $request->query('nameEn'),
             'make'         => $request->query('make'),
             'model'        => $request->query('model'),
@@ -26,7 +29,6 @@ class InventoryController extends Controller
             'warehouse_id' => $request->query('warehouse_id'),
             'bay'          => $request->query('bay'),
             'acquired_date' => $request->query('acquired_date'),
-            'transaction_id' => $request->query('transaction_id'),
         ];
         $pageOffset = ($data["page"] - 1) * $data["pageSize"];
 
@@ -58,14 +60,9 @@ class InventoryController extends Controller
             })
             ->when($data["acquired_date"], function ($q, $v) {
                 return $q->whereBetween("acquired_date", [$v, now()])->orderBy("acquired_date", "asc");
-            })
-            ->when($data["transaction_id"], function ($q, $v) {
-                return $q->whereHas("transactions", function ($q2) use ($v) {
-                    return $q2->where("transaction_id", $v);
-                });
             });
 
-        $inventory = $query->limit($data["pageSize"])->skip($pageOffset)->get();
+        $inventory = $query->limit($data["pageSize"])->skip($pageOffset)->orderBy("created_at", "DESC")->get();
         return response()->json($inventory);
     }
 
@@ -97,12 +94,21 @@ class InventoryController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Inventory $inventory)
+    public function show(Inventory $inventory, Request $request)
     {
+        $data = [
+            "page" => $request->input("page", $this->PAGE),
+            "pageSize" => $request->input("pageSize", $this->PAGE_SIZE),
+        ];
+
+        $pageOffset = ($data["page"] - 1) * $data["pageSize"];
+
         $warehouse = Warehouse::query()
             ->where("id", $inventory->warehouse_id)->latest()->first();
 
-        $result = collect(["inventory" => $inventory->toArray(), "warehouse" => $warehouse->toArray()]);
+        $transactions = $inventory->transactions()->limit($data["pageSize"])->skip($pageOffset)->orderBy("created_at", "DESC")->get();
+
+        $result = collect(["inventory" => $inventory->toArray(), "warehouse" => $warehouse->toArray(), "transactions" => $transactions->toArray()]);
 
         return response()->json([
             "success" => true,
