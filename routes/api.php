@@ -17,7 +17,7 @@ Route::prefix("auth")->group(function () {
     });
 });
 
-Route::middleware("auth:sanctum")->group(function () {
+Route::middleware(["auth:sanctum", "throttle:api"])->group(function () {
     Route::apiResource('inventories', InventoryController::class);
     Route::apiResource('transactions', TransactionController::class);
     Route::apiResource('employees', EmployeeController::class);
