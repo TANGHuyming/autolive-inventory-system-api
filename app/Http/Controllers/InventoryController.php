@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\InventoryResource;
 use Illuminate\Http\Request;
 use App\Http\Requests\InventoryRequest;
 use App\Models\Inventory;
-use App\Models\Warehouse;
 
 class InventoryController extends Controller
 {
@@ -25,49 +25,48 @@ class InventoryController extends Controller
             'make'         => $request->query('make'),
             'model'        => $request->query('model'),
             'year'         => $request->query('year'),
-            'shelf'        => $request->query('shelf'),
-            'warehouse_id' => $request->query('warehouse_id'),
-            'bay'          => $request->query('bay'),
             'acquired_date' => $request->query('acquired_date'),
         ];
         $pageOffset = ($data["page"] - 1) * $data["pageSize"];
 
-        // query builder
-        $query = Inventory::query()
-            ->with(
-                'transactions'
-            )
-            ->when($data["nameEn"], function ($q, $v) {
-                return $q->where("nameEn", "ILIKE", "%{$v}%");
-            })
-            ->when($data["make"], function ($q, $v) {
-                return $q->where("make", "ILIKE", "%{$v}%");
-            })
-            ->when($data["model"], function ($q, $v) {
-                return $q->where("model", "ILIKE", "%{$v}%");
-            })
-            ->when($data["year"], function ($q, $v) {
-                return $q->where("year", "=", $v);
-            })
-            ->when($data["warehouse_id"], function ($q, $v) {
-                return $q->where("warehouse_id", "=", $v);
-            })
-            ->when($data["shelf"], function ($q, $v) {
-                return $q->where("shelf", "=", strtoupper($v));
-            })
-            ->when($data["bay"], function ($q, $v) {
-                return $q->where("bay", "=", $v);
-            })
-            ->when($data["acquired_date"], function ($q, $v) {
-                return $q->whereBetween("acquired_date", [$v, now()])->orderBy("acquired_date", "asc");
-            });
+        try {
 
-        $inventories = $query->limit($data["pageSize"])->skip($pageOffset)->orderBy("created_at", "DESC")->get();
-        return response()->json([
-            "success" => true,
-            "data" => $inventories,
-            "message" => "Inventories retrieved successfully",
-        ]);
+            // query builder
+            $query = Inventory::query()
+                ->with([
+                    'shelves.bay.warehouse',
+                ])
+                ->when($data["nameEn"], function ($q, $v) {
+                    return $q->where("nameEn", "ILIKE", "%{$v}%");
+                })
+                ->when($data["make"], function ($q, $v) {
+                    return $q->where("make", "ILIKE", "%{$v}%");
+                })
+                ->when($data["model"], function ($q, $v) {
+                    return $q->where("model", "ILIKE", "%{$v}%");
+                })
+                ->when($data["year"], function ($q, $v) {
+                    return $q->where("year", "=", $v);
+                })
+                ->when($data["acquired_date"], function ($q, $v) {
+                    return $q->whereBetween("acquired_date", [$v, now()])->orderBy("acquired_date", "asc");
+                });
+
+            $inventories = $query->limit($data["pageSize"])->skip($pageOffset)->orderBy("created_at", "DESC")->get();
+            $inventories = InventoryResource::collection($inventories);
+
+            return response()->json([
+                "success" => true,
+                "data" => $inventories,
+                "message" => "Inventories retrieved successfully",
+            ]);
+        } catch (\Throwable $error) {
+            return response()->json([
+                "success" => false,
+                "data" => $error,
+                "message" => "Internal server error",
+            ]);
+        }
     }
 
     /**
@@ -104,21 +103,25 @@ class InventoryController extends Controller
             "page" => $request->input("page", $this->PAGE),
             "pageSize" => $request->input("pageSize", $this->PAGE_SIZE),
         ];
+        try {
+            $pageOffset = ($data["page"] - 1) * $data["pageSize"];
+            $inventory->load(["shelves.bay.warehouse"]);
+            $formattedInventory = new InventoryResource($inventory);
+            $transactions = $inventory->transactions()->limit($data["pageSize"])->skip($pageOffset)->orderBy("created_at", "DESC")->get();
+            $result = collect(["inventory" => $formattedInventory, "transactions" => $transactions]);
 
-        $pageOffset = ($data["page"] - 1) * $data["pageSize"];
-
-        $warehouse = Warehouse::query()
-            ->where("id", $inventory->warehouse_id)->latest()->first();
-
-        $transactions = $inventory->transactions()->limit($data["pageSize"])->skip($pageOffset)->orderBy("created_at", "DESC")->get();
-
-        $result = collect(["inventory" => $inventory, "warehouse" => $warehouse, "transactions" => $transactions]);
-
-        return response()->json([
-            "success" => true,
-            "data" => $result,
-            "message" => "Item details queried successfully",
-        ]);
+            return response()->json([
+                "success" => true,
+                "data" => $result,
+                "message" => "Item details queried successfully",
+            ]);
+        } catch (\Throwable $error) {
+            return response()->json([
+                "success" => false,
+                "data" => $error,
+                "message" => "Internal server error",
+            ]);
+        }
     }
 
     /**

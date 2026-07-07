@@ -12,16 +12,15 @@ return new class extends Migration {
     {
         Schema::create('inventories', function (Blueprint $table) {
             $table->id();
-            $table->foreignId("warehouse_id")->constrained("warehouses");
             $table->string("nameEn");
             $table->string("nameKh")->nullable();
             $table->string("make");
             $table->string("model");
             $table->year("year");
             $table->string("code")->unique();
-            $table->integer("quantity")->default(0);
-            $table->string("shelf");
-            $table->string("bay");
+            // $table->integer("quantity")->default(0);
+            // $table->string("shelf");
+            // $table->string("bay");
             $table->string("picture_url")->nullable();
             $table->timestamps();
             $table->softDeletes();

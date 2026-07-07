@@ -29,10 +29,6 @@ class InventoryRequest extends FormRequest
             "make" => "string|required|max:100",
             "model" => "string|required|max:100",
             "year" => "string|required|numeric|digits:4",
-            "code" => "string|required|unique:inventories,code|max:50",
-            "quantity" => "integer|min:0",
-            "shelf" => "string|required|alpha",
-            "bay" => "string|required|numeric|digits:4",
             "picture_url" => "string|nullable",
         ];
     }

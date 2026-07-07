@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Transaction;
-use App\Models\Inventory;
+use App\Models\Bay;
 
 class Warehouse extends Model
 {
@@ -18,8 +18,8 @@ class Warehouse extends Model
         return $this->hasMany(Transaction::class);
     }
 
-    public function inventories()
+    public function bays()
     {
-        return $this->hasMany(Inventory::class);
+        return $this->hasMany(Bay::class);
     }
 }

@@ -29,10 +29,7 @@ class InventoryFactory extends Factory
             "make" => fake()->randomElement($makes),
             "model" => fake()->randomElement($models),
             "year" => fake()->randomElement($years),
-            "code" => fake()->randomNumber(8, true),
-            "quantity" => fake()->randomNumber(2, false),
-            "shelf" => fake()->randomLetter(),
-            "bay" => fake()->numerify("####"),
+            "code" => fake()->unique()->randomNumber(8, true),
             "picture_url" => null,
         ];
     }
