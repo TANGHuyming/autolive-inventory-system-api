@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use App\Http\Resources\TransactionResource;
 use Illuminate\Http\Request;
 use App\Http\Requests\TransactionRequest;
 use App\Models\Transaction;
@@ -31,27 +32,35 @@ class TransactionController extends Controller
 
         $pageOffset = ($data["page"] - 1) * $data["pageSize"];
 
-        $query = Transaction::query()
-            ->with('inventories')
-            ->when($data["first_name"], function ($q, $v) {
-                return $q->where("first_name", "LIKE", "%{$v}%");
-            })
-            ->when($data["last_name"], function ($q, $v) {
-                return $q->where("last_name", "LIKE", "%{$v}%");
-            })
-            ->when($data["telephone"], function ($q, $v) {
-                return $q->where("telephone", "=", $v);
-            })
-            ->when($data["transaction_date"], function ($q, $v) {
-                return $q->whereBetween("transaction_date", [$v, now()]);
-            });
+        try {
+            $query = Transaction::query()
+                ->with(['inventories', 'employee', 'warehouse'])
+                ->when($data["first_name"], function ($q, $v) {
+                    return $q->where("first_name", "LIKE", "%{$v}%");
+                })
+                ->when($data["last_name"], function ($q, $v) {
+                    return $q->where("last_name", "LIKE", "%{$v}%");
+                })
+                ->when($data["telephone"], function ($q, $v) {
+                    return $q->where("telephone", "=", $v);
+                })
+                ->when($data["transaction_date"], function ($q, $v) {
+                    return $q->whereBetween("transaction_date", [$v, now()]);
+                });
 
-        $transactions = $query->limit($data["pageSize"])->skip($pageOffset)->orderBy("created_at", "DESC")->get();
-        return response()->json([
-            "success" => true,
-            "data" => $transactions,
-            "message" => "Transactions retrieved successfully",
-        ]);
+            $transactions = $query->limit($data["pageSize"])->skip($pageOffset)->orderBy("created_at", "DESC")->get();
+            return response()->json([
+                "success" => true,
+                "data" => TransactionResource::collection($transactions),
+                "message" => "Transactions retrieved successfully",
+            ]);
+        } catch (\Throwable $error) {
+            return response()->json([
+                "success" => false,
+                "data" => $error->getMessage(),
+                "message" => "Internal server error",
+            ]);
+        }
     }
 
     /**
@@ -64,49 +73,47 @@ class TransactionController extends Controller
 
         try {
             $createdTransaction = DB::transaction(function () use ($validated) {
+                $transaction = Transaction::create(collect($validated)->all());
                 $syncData = [];
 
                 foreach (collect($validated["inventory_ids"])->all() as $inventory_id) {
                     // check the availability of each item
-                    $item = Inventory::where("id", $inventory_id["inventory_id"])->lockForUpdate()->first();
+                    $item = Inventory::where("id", $inventory_id["inventory_id"])->first();
 
                     if (!$item) {
-                        throw new RuntimeException(json_encode([
-                            "success" => false,
-                            "data" => [],
-                            "message" => "Item not found",
-                        ]));
+                        throw new \Exception("Item does not exist");
                     }
 
-                    if ($item->quantity < $inventory_id["quantity"]) {
-                        throw new RuntimeException(json_encode([
-                            "success" => false,
-                            "data" => [
-                                "item_name" => $item->nameEn . $item->nameKh,
-                                "quantity" => $inventory_id["quantity"],
-                                "available_stock" => "{$item->quantity}",
-                            ],
-                            "message" => "Quantity is greater than the available stock",
-                        ]));
+                    $stock_quantity = $item->shelves()->first()->pivot->stock_quantity;
+
+                    if ($stock_quantity < $inventory_id["quantity"]) {
+                        throw new \Exception("Quantity is greater than the available stock");
                     }
 
                     $syncData[$item->id] = ["quantity" => $inventory_id["quantity"]];
-                    $item->decrement("quantity", $inventory_id["quantity"]);
+                    $item->shelves()->detach($item->id);
+                    $item->shelves()->attach($item->id, ["stock_quantity" => $stock_quantity - $inventory_id["quantity"]]);
                 };
 
-                $transaction = Transaction::create(collect($validated)->except("inventory_ids")->all());
                 $transaction->inventories()->sync($syncData);
 
                 return $transaction;
             });
+
+            $createdTransaction->load(['inventories', 'warehouse', 'employee']);
+            $createdTransaction = new TransactionResource($createdTransaction);
 
             return response()->json([
                 "success" => true,
                 "data" => $createdTransaction,
                 "message" => "Transaction processed successfully",
             ]);
-        } catch (RuntimeException $e) {
-            return response()->json(json_decode($e->getMessage()));
+        } catch (\Throwable $error) {
+            return [
+                "success" => false,
+                "data" => $error->getMessage(),
+                "message" => "Internal server error",
+            ];
         }
     }
 
@@ -122,38 +129,19 @@ class TransactionController extends Controller
 
         $pageOffset = ($data["page"] - 1) * $data["pageSize"];
 
-        $inventories = $transaction->inventories()->limit($data["pageSize"])->skip($pageOffset)->get();
-
-        $result = collect(["transaction" => $transaction, "inventories" => $inventories]);
-
-        return response()->json([
-            "success" => true,
-            "data" => $result,
-            "message" => "Transaction details retrieved successfully",
-        ]);
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(TransactionRequest $request, Transaction $transaction)
-    {
-        //
-        $validated = $request->validated();
-
-        $transaction->update(collect($validated)->all());
-        $transaction->inventories()->sync($validated["inventory_ids"]);
-
-        return response()->noContent();
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Transaction $transaction)
-    {
-        //
-        $transaction->delete();
-        return response()->noContent();
+        try {
+            $transaction = $transaction->load(['inventories', 'warehouse', 'employee']);
+            return response()->json([
+                "success" => true,
+                "data" => new TransactionResource($transaction),
+                "message" => "Transaction details retrieved successfully",
+            ]);
+        } catch (\Throwable $error) {
+            return response()->json([
+                "success" => false,
+                "data" => $error->getMessage(),
+                "message" => "Internal server error",
+            ]);
+        }
     }
 }

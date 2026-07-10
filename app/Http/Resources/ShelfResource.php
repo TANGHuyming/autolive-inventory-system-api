@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\BayResource;
 
 class ShelfResource extends JsonResource
 {
@@ -16,6 +17,7 @@ class ShelfResource extends JsonResource
     {
         return [
             "shelf_name" => $this->name,
+            "bay" => new BayResource($this->whenLoaded("bay")),
         ];
     }
 }

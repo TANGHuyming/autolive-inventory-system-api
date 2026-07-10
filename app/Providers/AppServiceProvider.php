@@ -24,7 +24,7 @@ class AppServiceProvider extends ServiceProvider
     {
         //
         RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(10)->response(function (Request $request) {
+            return Limit::perMinute(60)->response(function (Request $request) {
                 return response()->json([
                     "success" => false,
                     "data" => [],

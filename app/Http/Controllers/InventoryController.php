@@ -6,6 +6,7 @@ use App\Http\Resources\InventoryResource;
 use Illuminate\Http\Request;
 use App\Http\Requests\InventoryRequest;
 use App\Models\Inventory;
+use Illuminate\Support\Facades\DB;
 
 class InventoryController extends Controller
 {
@@ -30,7 +31,6 @@ class InventoryController extends Controller
         $pageOffset = ($data["page"] - 1) * $data["pageSize"];
 
         try {
-
             // query builder
             $query = Inventory::query()
                 ->with([
@@ -63,7 +63,7 @@ class InventoryController extends Controller
         } catch (\Throwable $error) {
             return response()->json([
                 "success" => false,
-                "data" => $error,
+                "data" => $error->getMessage(),
                 "message" => "Internal server error",
             ]);
         }
@@ -74,24 +74,35 @@ class InventoryController extends Controller
      */
     public function store(InventoryRequest $request)
     {
-        //Sanitize data
         $validated = $request->validated();
-        $item = collect($validated)->map(function ($value, $key) {
-            $sanitizedItem = null;
-            if (is_string($value)) {
-                $sanitizedItem = trim($value);
-                $sanitizedItem = strtoupper($value[0]) . strtolower(substr($value, 1, null));
-            } else {
-                $sanitizedItem = $value;
-            }
-            return $sanitizedItem;
-        });
+        try {
+            $createdInventory = DB::transaction(function () use ($validated) {
+                $newItem = Inventory::create(
+                    $validated
+                );
 
-        $createdInventory = Inventory::create(
-            $item->all()
-        );
+                $newItem->shelves()->attach($validated["shelf_id"], [
+                    "stock_quantity" => $validated["stock_quantity"],
+                ]);
 
-        return response()->json($createdInventory);
+                return $newItem;
+            });
+
+            $createdInventory->load(['shelves.bay.warehouse']);
+            $createdInventory = new InventoryResource($createdInventory);
+
+            return response()->json([
+                "success" => true,
+                "data" => $createdInventory,
+                "message" => "Item created successfully",
+            ]);
+        } catch (\Throwable $error) {
+            return response()->json([
+                "success" => false,
+                "data" => $error->getMessage(),
+                "message" => "Internal server error",
+            ]);
+        }
     }
 
     /**
@@ -103,22 +114,21 @@ class InventoryController extends Controller
             "page" => $request->input("page", $this->PAGE),
             "pageSize" => $request->input("pageSize", $this->PAGE_SIZE),
         ];
+
         try {
             $pageOffset = ($data["page"] - 1) * $data["pageSize"];
-            $inventory->load(["shelves.bay.warehouse"]);
+            $inventory->load(["shelves.bay.warehouse", 'transactions.employee']);
             $formattedInventory = new InventoryResource($inventory);
-            $transactions = $inventory->transactions()->limit($data["pageSize"])->skip($pageOffset)->orderBy("created_at", "DESC")->get();
-            $result = collect(["inventory" => $formattedInventory, "transactions" => $transactions]);
 
             return response()->json([
                 "success" => true,
-                "data" => $result,
+                "data" => $formattedInventory,
                 "message" => "Item details queried successfully",
             ]);
         } catch (\Throwable $error) {
             return response()->json([
                 "success" => false,
-                "data" => $error,
+                "data" => $error->getMessage(),
                 "message" => "Internal server error",
             ]);
         }
@@ -129,24 +139,39 @@ class InventoryController extends Controller
      */
     public function update(Inventory $inventory, InventoryRequest $request)
     {
-        $validated = $request->validated();
-        //Sanitize data
-        $item = collect($validated)->map(function ($value, $key) {
-            $sanitizedItem = null;
-            if (is_string($value)) {
-                $sanitizedItem = trim($value);
-                $sanitizedItem = strtoupper($value[0]) . strtolower(substr($value, 1, null));
-            } else {
-                $sanitizedItem = $value;
-            }
-            return $sanitizedItem;
-        });
+        try {
+            $validated = $request->validated();
 
-        $inventory->update(
-            $item->all()
-        );
+            $updatedItem = DB::transaction(function () use ($inventory, $validated) {
+                $updated = $inventory->update(
+                    $validated
+                );
 
-        return response()->noContent();
+                $originalShelf = $inventory->shelves()->first()->id;
+
+                $inventory->shelves()->detach($originalShelf);
+                $inventory->shelves()->attach($validated["shelf_id"], [
+                    "stock_quantity" => $validated["stock_quantity"],
+                ]);
+
+                return $inventory;
+            });
+
+            $updatedItem->load(["shelves.bay.warehouse"]);
+            $updatedItem = new InventoryResource($updatedItem);
+
+            return response()->json([
+                "success" => true,
+                "data" => $updatedItem,
+                "message" => "Item updated successfully",
+            ]);
+        } catch (\Throwable $error) {
+            return response()->json([
+                "success" => false,
+                "data" => $error->getMessage(),
+                "message" => "Internal server error",
+            ]);
+        }
     }
 
     /**
