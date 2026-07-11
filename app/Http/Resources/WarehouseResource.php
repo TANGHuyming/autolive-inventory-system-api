@@ -22,6 +22,7 @@ class WarehouseResource extends JsonResource
             "village" => $this->village,
             "street" => $this->street,
             "house_number" => $this->house_number,
+            "bays" => BayResource::collection($this->whenLoaded('bays')),
         ];
     }
 }

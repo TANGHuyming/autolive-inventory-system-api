@@ -18,6 +18,7 @@ class BayResource extends JsonResource
         return [
             "bay_name" => $this->name,
             "warehouse" => new WarehouseResource($this->whenLoaded('warehouse')),
+            "shelves" => ShelfResource::collection($this->whenLoaded("shelves")),
         ];
     }
 }
