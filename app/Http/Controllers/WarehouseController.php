@@ -124,6 +124,7 @@ class WarehouseController extends Controller
         try {
             $warehouse->update($validated);
             $warehouse->refresh();
+            $warehouse->load(['bays']);
             return response()->json([
                 "success" => true,
                 "data" => new WarehouseResource($warehouse),

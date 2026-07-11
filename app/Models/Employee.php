@@ -21,8 +21,8 @@ class Employee extends Authenticatable
         return $this->hasMany(Transaction::class);
     }
 
-    public function roles()
+    public function role()
     {
-        return $this->belongsToMany(Role::class, "employee_roles");
+        return $this->belongsTo(Role::class);
     }
 }

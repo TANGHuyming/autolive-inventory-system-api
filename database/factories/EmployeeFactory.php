@@ -24,6 +24,7 @@ class EmployeeFactory extends Factory
             "email" => fake()->email(),
             "telephone" => fake()->phoneNumber(),
             "password" => Hash::make("password"),
+            "role_id" => 3, // employee role_id,
         ];
     }
 }

@@ -15,7 +15,7 @@ class Role extends Model
 
     public function employees()
     {
-        return $this->belongsToMany(Employee::class, "employee_roles");
+        return $this->hasMany(Employee::class);
     }
 
     public function permissions()

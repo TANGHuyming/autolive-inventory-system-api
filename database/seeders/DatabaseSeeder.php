@@ -20,22 +20,11 @@ class DatabaseSeeder extends Seeder
     {
         // User provided seed data
         $this->call([
-            EmployeeSeeder::class,
             RoleSeeder::class,
+            EmployeeSeeder::class,
         ]);
 
         Employee::factory()->count(10)->create();
-
-        $roles = Role::all();
-        $employees = Employee::all();
-
-        // Connect correct roles to each employee
-        $superAdmin = $employees->first()->roles()->attach(["role_id" => 1]);
-        $tester = $employees->get(1)->roles()->attach(["role_id" => 2]);
-        $rest = $employees->slice(2);
-        $rest->each(function ($e) {
-            $e->roles()->attach(["role_id" => 3]);
-        });
 
         // Generate Warehouses which have Bays which have Shelves
         Warehouse::factory()
