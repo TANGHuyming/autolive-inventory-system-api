@@ -9,10 +9,11 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RoleController;
 
 Route::prefix("auth")->group(function () {
-    Route::post("login", [AuthController::class, "login"]);
+    Route::post("login", [AuthController::class, "login"])->middleware("throttle:login");
     Route::post("register", [AuthController::class, "register"]);
 
-    Route::middleware("auth:sanctum")->group(function () {
+    Route::middleware(["auth:sanctum"])->group(function () {
+        Route::get("me", [AuthController::class, "me"]);
         Route::get("logout", [AuthController::class, "logout"]);
     });
 });

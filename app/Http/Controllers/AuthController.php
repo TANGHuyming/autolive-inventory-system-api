@@ -2,93 +2,117 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\EmployeeResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Employee;
+use App\Http\Requests\EmployeeRequest;
 
 class AuthController extends Controller
 {
     //
     public function login(Request $request)
     {
-        $validated = $request->validate([
-            "email" => "email|required|string",
-            "password" => "string|required",
-        ]);
+        try {
 
-        // sanitize email and password
-        $email = trim($validated["email"]);
-        $password = trim($validated["password"]);
+            $validated = $request->validate([
+                "email" => "email|required|string",
+                "password" => "string|required",
+            ]);
 
-        $employee = Employee::where("email", "=", $email)->first();
+            // sanitize email and password
+            $email = trim($validated["email"]);
+            $password = trim($validated["password"]);
 
-        if (!$employee) {
+            $employee = Employee::where("email", "=", $email)->first();
+
+            if (!$employee) {
+                throw new \Exception("Employee does not exist");
+            }
+
+            if (!Hash::check($password, $employee->password)) {
+                throw new \Exception("Credentials are invalid");
+            }
+
+            $token = $employee->createToken('auth_token', ['*'], now()->addHours(24))->plainTextToken;
+
+            return response()->json([
+                "success" => true,
+                "data" => [
+                    "employee" => new EmployeeResource($employee),
+                    "token" => $token,
+                ],
+                "message" => "Login successful",
+            ]);
+        } catch (\Throwable $error) {
             return response()->json([
                 "success" => false,
-                "data" => [],
-                "message" => "Employee does not exist",
+                "data" => $error->getMessage(),
+                "message" => "Internal server error",
             ]);
         }
-
-        if (!Hash::check($password, $employee->password)) {
-            return response()->json([
-                "success" => false,
-                "data" => [],
-                "message" => "Invalid password",
-            ]);
-        }
-
-        $token = $employee->createToken('auth_token', ['*'], now()->addHours(24))->plainTextToken;
-
-        return response()->json([
-            "success" => true,
-            "data" => [
-                "employee" => $employee,
-                "token" => $token,
-            ], // with token
-            "message" => "Login successful",
-        ]);
     }
 
-    public function register(Request $request)
+    public function register(EmployeeRequest $request)
     {
-        //
-        $validated = $request->validate([
-            "first_name" => "required|max:255|string",
-            "last_name" => "required|max:255|string",
-            "email" => "required|max:255|email|string",
-            "telephone" => "required|string|max:15",
-            "password" => "required|string|max:255",
-        ]);
+        try {
+            $validated = $request->validated();
 
-        $employee = Employee::make([
-            "first_name" => $validated["first_name"],
-            "last_name" => $validated["last_name"],
-            "email" => $validated["email"],
-            "telephone" => $validated["telephone"],
-            "password" => Hash::make($validated["password"]),
-        ]);
+            $employee = Employee::create($validated);
 
-        // create the record
-        $employee->save();
-
-        return response()->json([
-            "success" => true,
-            "data" => [
-                "employee" => $employee,
-            ],
-            "message" => "New employee registered successfully",
-        ]);
+            return response()->json([
+                "success" => true,
+                "data" => new EmployeeResource($employee),
+                "message" => "New employee registered successfully",
+            ]);
+        } catch (\Throwable $error) {
+            return response()->json([
+                "success" => false,
+                "data" => $error->getMessage(),
+                "message" => "Internal server error",
+            ]);
+        }
     }
 
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        try {
+            $request->user()->currentAccessToken()->delete();
 
-        return response()->json([
-            "success" => true,
-            "data" => [],
-            "message" => "Employee logged out successfully",
-        ]);
+            return response()->json([
+                "success" => true,
+                "data" => [],
+                "message" => "Employee logged out successfully",
+            ]);
+        } catch (\Throwable $error) {
+            return response()->json([
+                "success" => false,
+                "data" => $error->getMessage(),
+                "message" => "Internal server error",
+            ]);
+        }
+    }
+
+    public function me(Request $request)
+    {
+        try {
+            $employee = $request->user();
+
+            if (!$employee) {
+                throw new \Exception("Unauthenticated");
+            }
+
+            return response()->json([
+                "success" => true,
+                "data" => new EmployeeResource($employee),
+                "message" => "Authenticated",
+            ]);
+        } catch (\Throwable $error) {
+            return response()->json([
+                "success" => false,
+                "data" => $error->getMessage(),
+                "message" => "Internal server error",
+            ]);
+        }
     }
 }

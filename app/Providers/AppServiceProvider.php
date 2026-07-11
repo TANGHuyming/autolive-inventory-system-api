@@ -32,5 +32,17 @@ class AppServiceProvider extends ServiceProvider
                 ], 429);
             });
         });
+
+        RateLimiter::for("login", function (Request $request) {
+            $throttle_key = $request->ip();
+
+            return Limit::perMinute(5)->by($throttle_key)->response(function (Request $request) {
+                return response()->json([
+                    "success" => false,
+                    "data" => [],
+                    "message" => "Too many attempts",
+                ]);
+            });
+        });
     }
 }
