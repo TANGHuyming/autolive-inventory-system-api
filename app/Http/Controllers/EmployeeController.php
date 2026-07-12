@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use App\Models\Employee;
+use App\Models\EmployeeDocument;
 use App\Http\Requests\EmployeeRequest;
 use App\Http\Resources\EmployeeResource;
 
@@ -86,19 +89,46 @@ class EmployeeController extends Controller
      */
     public function update(EmployeeRequest $request, Employee $employee)
     {
-        $validated = $request->validated();
-        $validated["password"] = Hash::make($validated["password"]);
-
         try {
-            $employee->update(
-                $validated,
-            );
-            $employee->refresh();
-            $employee->load(['role']);
+            $validated = $request->validated();
+            $validated["password"] = Hash::make($validated["password"]);
+
+            if (!array_key_exists("method", $validated)) {
+                throw new \Exception("method field must be specified in request");
+            }
+
+            if (!in_array($validated["method"], ["PUT", "PATCH"])) {
+                throw new \Exception("Invalid method used. Set method to PUT OR PATCH");
+            }
+
+            $updatedEmployee = DB::transaction(function () use ($employee, $validated) {
+                $employee->update(
+                    $validated,
+                );
+
+                if (!empty($validated["avatar"])) {
+                    $employee_avatar = $employee->employeeDocuments()->where("document_type", "avatar")->first();
+                    $avatar_path = Storage::disk('public')->putFile("avatars", $validated["avatar"]);
+                    $employee_document = $employee_avatar->update([
+                        "employee_id" => $employee->id,
+                        "file_original_name" => $validated["avatar"]->getClientOriginalName(),
+                        "file_mime_type" => $validated["avatar"]->getMimeType(),
+                        "file_path" => $avatar_path,
+                        "file_size" => $validated["avatar"]->getSize(),
+                        "document_type" => "avatar",
+                        "status" => "pending",
+                    ]);
+                }
+
+                return $employee;
+            });
+
+            $updatedEmployee->refresh();
+            $updatedEmployee->load(['role', 'employeeDocuments']);
 
             return response()->json([
                 "success" => true,
-                "data" => new EmployeeResource($employee),
+                "data" => new EmployeeResource($updatedEmployee),
                 "message" => "Employee updated successfully",
             ]);
         } catch (\Throwable $error) {

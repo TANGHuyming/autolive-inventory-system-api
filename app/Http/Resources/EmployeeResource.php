@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use App\Http\Resources\RoleResource;
+use App\Http\Resources\EmployeeDocumentResource;
 
 class EmployeeResource extends JsonResource
 {
@@ -20,6 +21,7 @@ class EmployeeResource extends JsonResource
             "employee_email" => $this->email,
             "employee_telephone" => $this->telephone,
             "role" => new RoleResource($this->whenLoaded("role")),
+            "employee_documents" => EmployeeDocumentResource::collection($this->whenLoaded("employeeDocuments")),
         ];
     }
 }

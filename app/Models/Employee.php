@@ -7,13 +7,14 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Transaction;
 use App\Models\Role;
+use App\Models\EmployeeDocument;
 
 class Employee extends Authenticatable
 {
     use HasApiTokens;
     use HasFactory;
 
-    protected $fillable = ["first_name", "last_name", "email", "telephone", "password"];
+    protected $fillable = ["role_id", "first_name", "last_name", "email", "telephone", "password"];
     protected $hidden = ["password"];
 
     public function transactions()
@@ -24,5 +25,10 @@ class Employee extends Authenticatable
     public function role()
     {
         return $this->belongsTo(Role::class);
+    }
+
+    public function employeeDocuments()
+    {
+        return $this->hasMany(EmployeeDocument::class);
     }
 }

@@ -9,8 +9,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RoleController;
 
 Route::prefix("auth")->group(function () {
-    Route::post("login", [AuthController::class, "login"])->middleware("throttle:login");
     Route::post("register", [AuthController::class, "register"]);
+    Route::post("login", [AuthController::class, "login"])->middleware("throttle:login");
 
     Route::middleware(["auth:sanctum"])->group(function () {
         Route::get("me", [AuthController::class, "me"]);
@@ -21,7 +21,13 @@ Route::prefix("auth")->group(function () {
 Route::middleware(["auth:sanctum", "throttle:api"])->group(function () {
     Route::apiResource('inventories', InventoryController::class);
     Route::apiResource('transactions', TransactionController::class);
-    Route::apiResource('employees', EmployeeController::class);
+
+    // Employee endpoints
+    Route::get("employees", [EmployeeController::class, "index"]);
+    Route::get("employees/{employee}", [EmployeeController::class, "show"]);
+    Route::post("employees/{employee}", [EmployeeController::class, "update"]);
+    Route::delete("employees/{employee}", [EmployeeController::class, "destroy"]);
+
     Route::apiResource('warehouses', WarehouseController::class);
     Route::apiResource('roles', RoleController::class);
 });
