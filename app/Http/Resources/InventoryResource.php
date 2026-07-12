@@ -25,6 +25,7 @@ class InventoryResource extends JsonResource
             "item_picture_url" => $this->picture_url,
             "shelves" => ShelfResource::collection($this->whenLoaded("shelves")),
             "transactions" => TransactionResource::collection($this->whenLoaded("transactions")),
+            "item_documents" => InventoryDocumentResource::collection($this->whenLoaded("inventoryDocuments")),
         ];
     }
 }

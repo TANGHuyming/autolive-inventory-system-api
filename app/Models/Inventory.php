@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Transaction;
 use App\Models\Shelf;
+use App\Models\InventoryDocument;
 
 class Inventory extends Model
 {
@@ -29,5 +30,10 @@ class Inventory extends Model
     public function shelves()
     {
         return $this->belongsToMany(Shelf::class, "inventory_shelves")->withPivot("stock_quantity");
+    }
+
+    public function inventoryDocuments()
+    {
+        return $this->hasMany(InventoryDocument::class);
     }
 }

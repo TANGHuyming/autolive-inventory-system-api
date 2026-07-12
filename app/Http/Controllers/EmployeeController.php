@@ -102,14 +102,10 @@ class EmployeeController extends Controller
             }
 
             $updatedEmployee = DB::transaction(function () use ($employee, $validated) {
-                $employee->update(
-                    $validated,
-                );
-
                 if (!empty($validated["avatar"])) {
                     $employee_avatar = $employee->employeeDocuments()->where("document_type", "avatar")->first();
                     $avatar_path = Storage::disk('public')->putFile("avatars", $validated["avatar"]);
-                    $employee_document = $employee_avatar->update([
+                    $employee_avatar->update([
                         "employee_id" => $employee->id,
                         "file_original_name" => $validated["avatar"]->getClientOriginalName(),
                         "file_mime_type" => $validated["avatar"]->getMimeType(),
@@ -119,6 +115,10 @@ class EmployeeController extends Controller
                         "status" => "pending",
                     ]);
                 }
+
+                $employee->update(
+                    $validated,
+                );
 
                 return $employee;
             });

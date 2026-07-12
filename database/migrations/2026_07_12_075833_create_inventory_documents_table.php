@@ -10,13 +10,13 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('employee_documents', function (Blueprint $table) {
+        Schema::create('inventory_documents', function (Blueprint $table) {
             $table->id();
-            $table->foreignId("employee_id")->constrained("employees");
+            $table->foreignId("inventory_id")->constrained("inventories");
             $table->string("file_original_name");
             $table->string("file_mime_type");
             $table->string("file_size");
-            $table->enum("document_type", ["avatar", "agreement", "CV", "others"]);
+            $table->enum("document_type", ["image", "others"]);
             $table->string("file_path")->unique();
             $table->enum("status", ["verified", "pending", "rejected"]);
             $table->timestamps();
@@ -29,6 +29,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('employee_documents');
+        Schema::dropIfExists('inventory_documents');
     }
 };

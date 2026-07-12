@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\InventoryResource;
+use App\Models\InventoryDocument;
 use Illuminate\Http\Request;
 use App\Http\Requests\InventoryRequest;
 use App\Models\Inventory;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class InventoryController extends Controller
 {
@@ -74,9 +76,19 @@ class InventoryController extends Controller
      */
     public function store(InventoryRequest $request)
     {
-        $validated = $request->validated();
         try {
+            $validated = $request->validated();
+
+            if (!array_key_exists("method", $validated)) {
+                throw new \Exception("method field must be specified in request");
+            }
+
+            if (!in_array($validated["method"], ["POST"])) {
+                throw new \Exception("Invalid method used. Set method to POST");
+            }
+
             $createdInventory = DB::transaction(function () use ($validated) {
+                $item_image_path = Storage::disk("public")->putFile("items", $validated["item_image"]);
                 $newItem = Inventory::create(
                     $validated
                 );
@@ -85,10 +97,20 @@ class InventoryController extends Controller
                     "stock_quantity" => $validated["stock_quantity"],
                 ]);
 
+                InventoryDocument::create([
+                    "inventory_id" => $newItem->id,
+                    "file_original_name" => $validated["item_image"]->getClientOriginalName(),
+                    "file_mime_type" => $validated["item_image"]->getMimeType(),
+                    "file_size" => $validated["item_image"]->getSize(),
+                    "file_path" => $item_image_path,
+                    "document_type" => "image",
+                    "status" => "pending",
+                ]);
+
                 return $newItem;
             });
 
-            $createdInventory->load(['shelves.bay.warehouse']);
+            $createdInventory->load(['shelves.bay.warehouse', 'inventoryDocuments']);
             $createdInventory = new InventoryResource($createdInventory);
 
             return response()->json([
@@ -142,7 +164,29 @@ class InventoryController extends Controller
         try {
             $validated = $request->validated();
 
+            if (!array_key_exists("method", $validated)) {
+                throw new \Exception("method field must be specified in request");
+            }
+
+            if (!in_array($validated["method"], ["PUT", "PATCH"])) {
+                throw new \Exception("Invalid method used. Set method to PUT OR PATCH");
+            }
+
             $updatedItem = DB::transaction(function () use ($inventory, $validated) {
+                if (!empty($validated["item_image"])) {
+                    $item_image_path = Storage::disk("public")->putFile("items", $validated["item_image"]);
+                    $item_image = $inventory->inventoryDocuments()->where("document_type", "image")->first();
+                    $item_image->update([
+                        "inventory_id" => $inventory->id,
+                        "file_original_name" => $validated["item_image"]->getClientOriginalName(),
+                        "file_mime_type" => $validated["item_image"]->getMimeType(),
+                        "file_size" => $validated["item_image"]->getSize(),
+                        "file_path" => $item_image_path,
+                        "document_type" => "image",
+                        "status" => "pending",
+                    ]);
+                }
+
                 $updated = $inventory->update(
                     $validated
                 );
@@ -157,7 +201,7 @@ class InventoryController extends Controller
                 return $inventory;
             });
 
-            $updatedItem->load(["shelves.bay.warehouse"]);
+            $updatedItem->load(["shelves.bay.warehouse", "inventoryDocuments"]);
             $updatedItem = new InventoryResource($updatedItem);
 
             return response()->json([

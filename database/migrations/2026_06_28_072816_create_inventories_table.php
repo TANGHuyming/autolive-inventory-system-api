@@ -18,10 +18,6 @@ return new class extends Migration {
             $table->string("model");
             $table->year("year");
             $table->string("code")->unique();
-            // $table->integer("quantity")->default(0);
-            // $table->string("shelf");
-            // $table->string("bay");
-            $table->string("picture_url")->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

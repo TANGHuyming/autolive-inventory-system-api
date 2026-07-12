@@ -30,7 +30,7 @@ class EmployeeRequest extends FormRequest
             "password" => "required|string|max:255",
             "role_id" => "required|numeric|string",
             "avatar" => "nullable|file|mimes:jpg,jpeg,png,avif|max:5120",
-            "method" => "nullable|string|in:PUT,PATCH,POST",
+            "method" => "required|string|in:PUT,PATCH,POST",
         ];
     }
 }

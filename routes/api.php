@@ -19,7 +19,14 @@ Route::prefix("auth")->group(function () {
 });
 
 Route::middleware(["auth:sanctum", "throttle:api"])->group(function () {
-    Route::apiResource('inventories', InventoryController::class);
+    // Inventory endpoints
+    Route::get("inventories", [InventoryController::class, "index"]);
+    Route::get("inventories/{inventory}", [InventoryController::class, "show"]);
+    Route::post("inventories", [InventoryController::class, "store"]);
+    Route::post("inventories/{inventory}", [InventoryController::class, "update"]);
+    Route::delete("inventories/{inventory}", [InventoryController::class, "destroy"]);
+
+    // Transaction endpoints
     Route::apiResource('transactions', TransactionController::class);
 
     // Employee endpoints
@@ -28,6 +35,9 @@ Route::middleware(["auth:sanctum", "throttle:api"])->group(function () {
     Route::post("employees/{employee}", [EmployeeController::class, "update"]);
     Route::delete("employees/{employee}", [EmployeeController::class, "destroy"]);
 
+    // Warehouse endpoints
     Route::apiResource('warehouses', WarehouseController::class);
+
+    // Role endpoints
     Route::apiResource('roles', RoleController::class);
 });
