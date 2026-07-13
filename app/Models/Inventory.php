@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Laravel\Scout\Searchable;
 use App\Models\Transaction;
 use App\Models\Shelf;
 use App\Models\InventoryDocument;
@@ -11,6 +12,7 @@ use App\Models\InventoryDocument;
 class Inventory extends Model
 {
     use HasFactory;
+    use Searchable;
 
     protected $fillable = [
         "nameEn",
@@ -19,7 +21,6 @@ class Inventory extends Model
         "model",
         "year",
         "code",
-        "picture_url",
     ];
 
     public function transactions()
@@ -35,5 +36,16 @@ class Inventory extends Model
     public function inventoryDocuments()
     {
         return $this->hasMany(InventoryDocument::class);
+    }
+
+    public function searchableAs()
+    {
+        return 'inventories';
+    }
+
+    public function toSearchableArray()
+    {
+        $array = $this->toArray();
+        return $array;
     }
 }

@@ -22,39 +22,35 @@ class InventoryController extends Controller
     {
         // search queries
         $data = [
+            "searchQuery" => $request->input("searchQuery"),
             'page'         => $request->query('page', $this->PAGE),
             'pageSize'     => $request->query('pageSize', $this->PAGE_SIZE),
             'nameEn'       => $request->query('nameEn'),
             'make'         => $request->query('make'),
             'model'        => $request->query('model'),
             'year'         => $request->query('year'),
-            'acquired_date' => $request->query('acquired_date'),
         ];
-        $pageOffset = ($data["page"] - 1) * $data["pageSize"];
 
         try {
-            // query builder
-            $query = Inventory::query()
-                ->with([
-                    'shelves.bay.warehouse',
-                ])
-                ->when($data["nameEn"], function ($q, $v) {
-                    return $q->where("nameEn", "ILIKE", "%{$v}%");
-                })
-                ->when($data["make"], function ($q, $v) {
-                    return $q->where("make", "ILIKE", "%{$v}%");
-                })
-                ->when($data["model"], function ($q, $v) {
-                    return $q->where("model", "ILIKE", "%{$v}%");
-                })
-                ->when($data["year"], function ($q, $v) {
-                    return $q->where("year", "=", $v);
-                })
-                ->when($data["acquired_date"], function ($q, $v) {
-                    return $q->whereBetween("acquired_date", [$v, now()])->orderBy("acquired_date", "asc");
+            $query = Inventory::search($data["searchQuery"])
+                ->query(function ($query) use ($data) {
+                    return $query
+                    ->with(['shelves.bay.warehouse', 'inventoryDocuments'])
+                    ->when(!empty($data["make"]), function ($q) use ($data) {
+                        return $q->where("make", "ILIKE", "%{$data["make"]}%");
+                    })
+                    ->when(!empty($data["model"]), function ($q) use ($data) {
+                        return $q->where("model", "ILIKE", "%{$data["model"]}%");
+                    })
+                    ->when(!empty($data["year"]), function ($q) use ($data) {
+                        return $q->where("year", "=", $data["year"]);
+                    });
                 });
 
-            $inventories = $query->limit($data["pageSize"])->skip($pageOffset)->orderBy("created_at", "DESC")->get();
+            $inventories = $query
+                ->latest()
+                ->paginate($data["pageSize"] ? $data["pageSize"] : $this->PAGE_SIZE);
+
             $inventories = InventoryResource::collection($inventories);
 
             return response()->json([
