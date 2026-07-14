@@ -3,13 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Laravel\Scout\Searchable;
 use App\Models\Employee;
 use App\Models\Inventory;
 use App\Models\Warehouse;
 
 class Transaction extends Model
 {
-    //
+    use Searchable;
+
     protected $fillable = [
         "employee_id",
         "warehouse_id",
@@ -32,5 +34,16 @@ class Transaction extends Model
     public function warehouse()
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    public function searchableAs()
+    {
+        return "transactions";
+    }
+
+    public function toSearchableArray()
+    {
+        $array = $this->toArray();
+        return $array;
     }
 }

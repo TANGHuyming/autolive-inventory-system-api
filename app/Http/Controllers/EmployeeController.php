@@ -22,33 +22,24 @@ class EmployeeController extends Controller
     {
         //
         $data = [
+            "searchQuery" => $request->input("searchQuery"),
+            "pageSize" => $request->input("pageSize", $this->PAGE_SIZE),
+            "page" => $request->input("page", $this->PAGE),
             "first_name" => $request->input("first_name"),
             "last_name" => $request->input("last_name"),
             "email" => $request->input("email"),
             "telephone" => $request->input("telephone"),
         ];
 
-        $page = $request->input("page");
-        $page_size = $request->input("page_size");
-        $page_offset = ($page - 1) * $page_size;
-
         try {
-            $query = Employee::query()
-                ->with(['role'])
-                ->when($data["first_name"], function ($q, $v) {
-                    return $q->where("first_name", "ILIKE", "%{$v}%");
-                })
-                ->when($data["last_name"], function ($q, $v) {
-                    return $q->where("last_name", "ILIKE", "%{$v}%");
-                })
-                ->when($data["email"], function ($q, $v) {
-                    return $q->where("email", "ILIKE", "%{$v}%");
-                })
-                ->when($data["telephone"], function ($q, $v) {
-                    return $q->where("telephone", "=", $v);
+            $query = Employee::search($data["searchQuery"])
+                ->query(function ($query) use ($data) {
+                    return $query
+                    ->with(['role']);
                 });
 
-            $employees = $query->limit($page_size)->skip($page_offset)->get();
+            $employees = $query->latest()->paginate($data["pageSize"]);
+
             return response()->json([
                 "success" => true,
                 "data" => EmployeeResource::collection($employees),

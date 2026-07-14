@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Inventory;
+use App\Models\Employee;
+use App\Models\Transaction;
 
 return [
 
@@ -148,7 +150,15 @@ return [
         'index-settings' => [
             Inventory::class => [
                 "filterableAttributes" => ["id", "make", "model", "year"],
-                "sortableAttributes" => ["created_at"],
+                "sortableAttributes" => ["created_at", "nameEn", "make", "model", "year"],
+            ],
+            Employee::class => [
+                "filterableAttributes" => ["id", "first_name", "last_name", "telephone"],
+                "sortableAttributes" => ["created_at", "first_name", "last_name"],
+            ],
+            Transaction::class => [
+                "filterableAttributes" => ["id", "first_name", "last_name", "telephone"],
+                "sortableAttributes" => ["created_at", "first_name", "last_name"],
             ],
         ],
     ],

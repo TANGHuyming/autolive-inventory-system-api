@@ -11,6 +11,10 @@ class Shelf extends Model
 {
     use HasFactory;
 
+    protected $touches = [
+        "inventory",
+    ];
+
     protected $fillable = [
         "bay_id",
         "name",

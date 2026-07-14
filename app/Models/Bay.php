@@ -11,6 +11,8 @@ class Bay extends Model
 {
     use HasFactory;
 
+    protected $touches = ["shelf"];
+
     protected $fillable = [
         "warehouse_id",
         "name",

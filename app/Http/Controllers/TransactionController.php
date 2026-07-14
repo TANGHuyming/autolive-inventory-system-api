@@ -22,6 +22,7 @@ class TransactionController extends Controller
     {
         //
         $data = [
+            "searchQuery" => $request->input("searchQuery"),
             "page" => $request->input("page", $this->PAGE),
             "pageSize" => $request->input("pageSize", $this->PAGE_SIZE),
             "first_name" => $request->query("first_name"),
@@ -30,25 +31,17 @@ class TransactionController extends Controller
             "transaction_date" => $request->query("transaction_date"),
         ];
 
-        $pageOffset = ($data["page"] - 1) * $data["pageSize"];
-
         try {
-            $query = Transaction::query()
-                ->with(['inventories', 'employee', 'warehouse'])
-                ->when($data["first_name"], function ($q, $v) {
-                    return $q->where("first_name", "LIKE", "%{$v}%");
-                })
-                ->when($data["last_name"], function ($q, $v) {
-                    return $q->where("last_name", "LIKE", "%{$v}%");
-                })
-                ->when($data["telephone"], function ($q, $v) {
-                    return $q->where("telephone", "=", $v);
-                })
-                ->when($data["transaction_date"], function ($q, $v) {
-                    return $q->whereBetween("transaction_date", [$v, now()]);
+            $query = Transaction::search($data["searchQuery"])
+                ->query(function ($query) use ($data) {
+                    return $query
+                        ->with(['inventories', 'employee', 'warehouse'])
+                        ->when($data["transaction_date"], function ($q, $v) {
+                            return $q->whereBetween("transaction_date", [$v, now()]);
+                        });
                 });
 
-            $transactions = $query->limit($data["pageSize"])->skip($pageOffset)->orderBy("created_at", "DESC")->get();
+            $transactions = $query->latest()->paginate($data["pageSize"]);
             return response()->json([
                 "success" => true,
                 "data" => TransactionResource::collection($transactions),

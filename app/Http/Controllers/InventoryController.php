@@ -35,21 +35,12 @@ class InventoryController extends Controller
             $query = Inventory::search($data["searchQuery"])
                 ->query(function ($query) use ($data) {
                     return $query
-                    ->with(['shelves.bay.warehouse', 'inventoryDocuments'])
-                    ->when(!empty($data["make"]), function ($q) use ($data) {
-                        return $q->where("make", "ILIKE", "%{$data["make"]}%");
-                    })
-                    ->when(!empty($data["model"]), function ($q) use ($data) {
-                        return $q->where("model", "ILIKE", "%{$data["model"]}%");
-                    })
-                    ->when(!empty($data["year"]), function ($q) use ($data) {
-                        return $q->where("year", "=", $data["year"]);
-                    });
+                    ->with(['shelves.bay.warehouse', 'inventoryDocuments']);
                 });
 
             $inventories = $query
                 ->latest()
-                ->paginate($data["pageSize"] ? $data["pageSize"] : $this->PAGE_SIZE);
+                ->paginate($data["pageSize"]);
 
             $inventories = InventoryResource::collection($inventories);
 

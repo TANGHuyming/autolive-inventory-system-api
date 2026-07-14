@@ -45,7 +45,19 @@ class Inventory extends Model
 
     public function toSearchableArray()
     {
+        $this->loadMissing(["shelves.bay.warehouse"]);
         $array = $this->toArray();
+
+        $array["shelves"] = $this->shelves->map(function ($shelf) {
+            return [
+                "name" => $shelf->name,
+                "bay" => [
+                    "name" => $shelf->bay->toArray(),
+                    "warehouse" => $shelf->bay->warehouse->toArray(),
+                ],
+            ];
+        })->toArray();
+
         return $array;
     }
 }
