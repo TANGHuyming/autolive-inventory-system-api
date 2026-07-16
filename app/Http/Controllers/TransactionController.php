@@ -12,6 +12,8 @@ use App\Http\Requests\TransactionRequest;
 use App\Models\Transaction;
 use App\Models\Inventory;
 
+use function Laravel\Prompts\datatable;
+
 class TransactionController extends Controller
 {
     private $PAGE = 1;
@@ -78,15 +80,16 @@ class TransactionController extends Controller
                         throw new \Exception("Item does not exist");
                     }
 
-                    $stock_quantity = $item->shelves()->first()->pivot->stock_quantity;
+                    $shelf = $item->shelves()->where('shelf_id', $inventory_id['shelf_id'])->first();
+                    $stock_quantity = $shelf->pivot->stock_quantity;
 
                     if ($stock_quantity < $inventory_id["quantity"]) {
                         throw new \Exception("Quantity is greater than the available stock");
                     }
 
                     $syncData[$item->id] = ["quantity" => $inventory_id["quantity"]];
-                    $item->shelves()->detach($item->id);
-                    $item->shelves()->attach($item->id, ["stock_quantity" => $stock_quantity - $inventory_id["quantity"]]);
+                    $item->shelves()->detach($shelf->id);
+                    $item->shelves()->attach($shelf->id, ["stock_quantity" => $stock_quantity - $inventory_id["quantity"]]);
                 };
 
                 $transaction->inventories()->sync($syncData);

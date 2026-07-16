@@ -2,7 +2,7 @@
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f5; padding: 40px 0;">
         <tr>
             <td align="center">
-                <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); font-family: Arial, Helvetica, sans-serif;">
+                <table role="presentation" width="450" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); font-family: Arial, Helvetica, sans-serif;">
 
                     <!-- Header -->
                     <tr>
