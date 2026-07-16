@@ -10,10 +10,10 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('bays', function (Blueprint $table) {
+        Schema::create('makes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId("warehouse_id")->constrained("warehouses");
             $table->string("name");
+            $table->string("country_of_origin")->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
@@ -24,6 +24,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('bays');
+        Schema::dropIfExists('makes');
     }
 };

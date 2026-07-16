@@ -7,6 +7,8 @@ use App\Models\InventoryDocument;
 use Illuminate\Http\Request;
 use App\Http\Requests\InventoryRequest;
 use App\Models\Inventory;
+use App\Models\Year;
+use App\Models\Shelf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -35,7 +37,7 @@ class InventoryController extends Controller
             $query = Inventory::search($data["searchQuery"])
                 ->query(function ($query) use ($data) {
                     return $query
-                    ->with(['shelves.bay.warehouse', 'inventoryDocuments']);
+                    ->with(['shelves.bay.warehouse', 'inventoryDocuments', 'years.carModel.make', 'transactions.employee']);
                 });
 
             $inventories = $query
@@ -80,7 +82,44 @@ class InventoryController extends Controller
                     $validated
                 );
 
-                $newItem->shelves()->attach($validated["shelf_id"], [
+                $query = Year::query()
+                    ->with(["carModel.make"])
+                    ->when(!empty($validated["year"]), function ($yearQuery) use ($validated) {
+                        return $yearQuery
+                            ->where("year", $validated["year"])
+                            ->whereHas(
+                                "carModel",
+                                function ($modelQuery) use ($validated) {
+                                    return $modelQuery->where("name", $validated["model"]);
+                                }
+                            )->whereHas(
+                                "carModel.make",
+                                function ($makeQuery) use ($validated) {
+                                    return $makeQuery->where("name", $validated["make"]);
+                                }
+                            );
+                    });
+
+                $year = $query->first();
+
+                $newItem->years()->attach($year->id);
+
+                $query = Shelf::query()
+                    ->with(["bay.warehouse"])
+                    ->when(!empty($validated["shelf"]), function ($shelfQuery) use ($validated) {
+                        return $shelfQuery
+                            ->where("name", $validated["shelf"])
+                            ->whereHas("bay", function ($bayQuery) use ($validated) {
+                                return $bayQuery->where("name", $validated["bay"]);
+                            })
+                            ->whereHas("bay.warehouse", function ($warehouseQuery) use ($validated) {
+                                return $warehouseQuery->where("name", $validated["warehouse"]);
+                            });
+                    });
+
+                $shelf = $query->first();
+
+                $newItem->shelves()->attach($shelf->id, [
                     "stock_quantity" => $validated["stock_quantity"],
                 ]);
 
@@ -97,7 +136,7 @@ class InventoryController extends Controller
                 return $newItem;
             });
 
-            $createdInventory->load(['shelves.bay.warehouse', 'inventoryDocuments']);
+            $createdInventory->load(['shelves.bay.warehouse', 'inventoryDocuments', 'years.carModel.make']);
             $createdInventory = new InventoryResource($createdInventory);
 
             return response()->json([
@@ -126,7 +165,7 @@ class InventoryController extends Controller
 
         try {
             $pageOffset = ($data["page"] - 1) * $data["pageSize"];
-            $inventory->load(["shelves.bay.warehouse", 'transactions.employee']);
+            $inventory->load(["shelves.bay.warehouse", 'transactions.employee', 'years.carModel.make', 'inventoryDocuments']);
             $formattedInventory = new InventoryResource($inventory);
 
             return response()->json([
@@ -163,7 +202,7 @@ class InventoryController extends Controller
                 if (!empty($validated["item_image"])) {
                     $item_image_path = Storage::disk("public")->putFile("items", $validated["item_image"]);
                     $item_image = $inventory->inventoryDocuments()->where("document_type", "image")->first();
-                    $item_image->update([
+                    $payload = [
                         "inventory_id" => $inventory->id,
                         "file_original_name" => $validated["item_image"]->getClientOriginalName(),
                         "file_mime_type" => $validated["item_image"]->getMimeType(),
@@ -171,24 +210,68 @@ class InventoryController extends Controller
                         "file_path" => $item_image_path,
                         "document_type" => "image",
                         "status" => "pending",
-                    ]);
+                    ];
+
+                    if (empty($item_image)) {
+                        InventoryDocument::create($payload);
+                    } else {
+                        $item_image->update($payload);
+                    }
                 }
 
                 $updated = $inventory->update(
                     $validated
                 );
 
+                $query = Year::query()
+                    ->with(["carModel.make"])
+                    ->when(!empty($validated["year"]), function ($yearQuery) use ($validated) {
+                        return $yearQuery
+                            ->where("year", $validated["year"])
+                            ->whereHas(
+                                "carModel",
+                                function ($modelQuery) use ($validated) {
+                                    return $modelQuery->where("name", $validated["model"]);
+                                }
+                            )->whereHas(
+                                "carModel.make",
+                                function ($makeQuery) use ($validated) {
+                                    return $makeQuery->where("name", $validated["make"]);
+                                }
+                            );
+                    });
+
+                $year = $query->first();
+                $originalYear = $inventory->years()->first()->id;
+
+                $inventory->years()->detach($originalYear);
+                $inventory->years()->attach($year->id);
+
+                $query = Shelf::query()
+                    ->with(["bay.warehouse"])
+                    ->when(!empty($validated["shelf"]), function ($shelfQuery) use ($validated) {
+                        return $shelfQuery
+                            ->where("name", $validated["shelf"])
+                            ->whereHas("bay", function ($bayQuery) use ($validated) {
+                                return $bayQuery->where("name", $validated["bay"]);
+                            })
+                            ->whereHas("bay.warehouse", function ($warehouseQuery) use ($validated) {
+                                return $warehouseQuery->where("name", $validated["warehouse"]);
+                            });
+                    });
+
+                $shelf = $query->first();
                 $originalShelf = $inventory->shelves()->first()->id;
 
                 $inventory->shelves()->detach($originalShelf);
-                $inventory->shelves()->attach($validated["shelf_id"], [
+                $inventory->shelves()->attach($shelf->id, [
                     "stock_quantity" => $validated["stock_quantity"],
                 ]);
 
                 return $inventory;
             });
 
-            $updatedItem->load(["shelves.bay.warehouse", "inventoryDocuments"]);
+            $updatedItem->load(["shelves.bay.warehouse", "inventoryDocuments", "years.carModel.make"]);
             $updatedItem = new InventoryResource($updatedItem);
 
             return response()->json([
@@ -210,7 +293,22 @@ class InventoryController extends Controller
      */
     public function destroy(Inventory $inventory)
     {
-        $inventory->delete();
-        return response()->noContent();
+        try {
+            $inventory->years()->delete();
+            $inventory->transactions()->delete();
+            $inventory->inventoryDocuments()->delete();
+            $inventory->delete();
+            return response()->json([
+                "success" => true,
+                "data" => [],
+                "message" => "Item deleted successfully",
+            ]);
+        } catch (\Throwable $error) {
+            return response()->json([
+                "success" => false,
+                "data" => $error->getMessage(),
+                "message" => "Internal server error",
+            ]);
+        }
     }
 }

@@ -12,7 +12,7 @@ class Shelf extends Model
     use HasFactory;
 
     protected $touches = [
-        "inventory",
+        "inventories",
     ];
 
     protected $fillable = [

@@ -14,9 +14,9 @@ return new class extends Migration {
             $table->id();
             $table->string("nameEn");
             $table->string("nameKh")->nullable();
-            $table->string("make");
-            $table->string("model");
-            $table->year("year");
+            // $table->string("make");
+            // $table->string("model");
+            // $table->year("year");
             $table->string("code")->unique();
             $table->timestamps();
             $table->softDeletes();

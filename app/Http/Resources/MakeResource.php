@@ -4,9 +4,9 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use App\Http\Resources\BayResource;
+use App\Http\Resources\CarModelResource;
 
-class ShelfResource extends JsonResource
+class MakeResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -16,9 +16,8 @@ class ShelfResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            "shelf_name" => $this->name,
-            "stock_quantity" => $this->pivot->stock_quantity,
-            "bay" => new BayResource($this->whenLoaded("bay")),
+            "make_name" => $this->name,
+            "make_country_of_origin" => $this->country_of_origin,
         ];
     }
 }

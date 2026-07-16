@@ -36,7 +36,9 @@ class InventoryRequest extends FormRequest
             "year" => "string|required|numeric|digits:4",
             "code" => "string|required|{$codeRule}|max:50",
             "stock_quantity" => "integer|min:0",
-            "shelf_id" => "string|required",
+            "warehouse" => "string|required|max:255",
+            "bay" => "string|required|max:100",
+            "shelf" => "string|required|max:100",
             "item_image" => "file|max:5120|mimes:jpg,jpeg,png,avif",
             "method" => "string|in:POST,PUT,PATCH|required",
         ];

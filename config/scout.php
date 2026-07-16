@@ -149,8 +149,8 @@ return [
         'key' => env('MEILISEARCH_KEY'),
         'index-settings' => [
             Inventory::class => [
-                "filterableAttributes" => ["id", "make", "model", "year"],
-                "sortableAttributes" => ["created_at", "nameEn", "make", "model", "year"],
+                "filterableAttributes" => [],
+                "sortableAttributes" => ["created_at", "nameEn"],
             ],
             Employee::class => [
                 "filterableAttributes" => ["id", "first_name", "last_name", "telephone"],

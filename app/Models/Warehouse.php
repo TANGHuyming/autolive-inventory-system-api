@@ -11,7 +11,7 @@ class Warehouse extends Model
 {
     use HasFactory;
 
-    protected $touches = ["bay"];
+    protected $touches = ["bays"];
 
     protected $fillable = ["name", "city", "district", "commune", "village", "street", "house_number"];
 

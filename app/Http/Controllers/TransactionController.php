@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\TransactionMade;
 use RuntimeException;
 use App\Http\Resources\TransactionResource;
 use Illuminate\Http\Request;
@@ -20,7 +22,6 @@ class TransactionController extends Controller
      */
     public function index(Request $request)
     {
-        //
         $data = [
             "searchQuery" => $request->input("searchQuery"),
             "page" => $request->input("page", $this->PAGE),
@@ -65,7 +66,7 @@ class TransactionController extends Controller
         $validated = $request->validated();
 
         try {
-            $createdTransaction = DB::transaction(function () use ($validated) {
+            $createdTransaction = DB::transaction(function () use ($validated, $request) {
                 $transaction = Transaction::create(collect($validated)->all());
                 $syncData = [];
 
@@ -89,6 +90,9 @@ class TransactionController extends Controller
                 };
 
                 $transaction->inventories()->sync($syncData);
+
+                // Testing for now. Can't be put to production unless I buy a domain
+                // Mail::to($request->user())->send(new TransactionMade($transaction));
 
                 return $transaction;
             });

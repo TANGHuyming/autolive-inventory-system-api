@@ -10,6 +10,9 @@ use App\Models\Inventory;
 use App\Models\Role;
 use App\Models\Bay;
 use App\Models\Shelf;
+use App\Models\Make;
+use App\Models\Year;
+use App\Models\CarModel;
 
 class DatabaseSeeder extends Seeder
 {
@@ -22,6 +25,9 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RoleSeeder::class,
             EmployeeSeeder::class,
+            MakeSeeder::class,
+            CarModelSeeder::class,
+            YearSeeder::class,
         ]);
 
         Employee::factory()->count(10)->create();
@@ -38,14 +44,18 @@ class DatabaseSeeder extends Seeder
         // Generate items
         Inventory::factory()->count(100)->create();
 
-        // Stock items to shelves
         $inventories = Inventory::all();
+        $years = Year::all();
         $shelves = Shelf::all();
-        $inventories->each(function ($i) use ($shelves) {
+
+        // Attach makes and shelves to items
+        $inventories->each(function ($i) use ($shelves, $years) {
             $randomShelfId = $shelves->pluck("id")->random();
+            $randomYearId = $years->pluck("id")->random();
             $i->shelves()->attach($randomShelfId, [
                 "stock_quantity" => random_int(0, 15),
             ]);
+            $i->years()->attach($randomYearId);
         });
     }
 }

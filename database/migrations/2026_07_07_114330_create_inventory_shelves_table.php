@@ -12,8 +12,8 @@ return new class extends Migration {
     {
         Schema::create('inventory_shelves', function (Blueprint $table) {
             $table->id();
-            $table->foreignId("inventory_id")->constrained("inventories")->onDelete("cascade");
-            $table->foreignId("shelf_id")->constrained("shelves")->onDelete("cascade");
+            $table->foreignId("inventory_id")->constrained("inventories");
+            $table->foreignId("shelf_id")->constrained("shelves");
             $table->integer("stock_quantity");
             $table->timestamps();
             $table->softDeletes();

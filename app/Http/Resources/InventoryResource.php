@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use App\Http\Resources\ShelfResource;
+use App\Http\Resources\YearResource;
 
 class InventoryResource extends JsonResource
 {
@@ -18,9 +19,7 @@ class InventoryResource extends JsonResource
         return [
             "item_name_en" => $this->nameEn,
             "item_name_kh" => $this->nameKh,
-            "item_make" => $this->make,
-            "item_model" => $this->model,
-            "item_year" => $this->year,
+            "item_year" => YearResource::collection($this->whenLoaded("years")),
             "item_code" => $this->code,
             "shelves" => ShelfResource::collection($this->whenLoaded("shelves")),
             "transactions" => TransactionResource::collection($this->whenLoaded("transactions")),

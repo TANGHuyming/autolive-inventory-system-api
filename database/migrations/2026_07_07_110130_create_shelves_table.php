@@ -12,7 +12,7 @@ return new class extends Migration {
     {
         Schema::create('shelves', function (Blueprint $table) {
             $table->id();
-            $table->foreignId("bay_id")->constrained("bays")->onDelete("cascade");
+            $table->foreignId("bay_id")->constrained("bays");
             $table->string("name");
             $table->timestamps();
         });

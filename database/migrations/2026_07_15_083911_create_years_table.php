@@ -10,10 +10,10 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('bays', function (Blueprint $table) {
+        Schema::create('years', function (Blueprint $table) {
             $table->id();
-            $table->foreignId("warehouse_id")->constrained("warehouses");
-            $table->string("name");
+            $table->foreignId("car_model_id")->constrained("car_models");
+            $table->year("year");
             $table->timestamps();
             $table->softDeletes();
         });
@@ -24,6 +24,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('bays');
+        Schema::dropIfExists('years');
     }
 };

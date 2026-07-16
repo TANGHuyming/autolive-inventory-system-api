@@ -34,8 +34,18 @@ return [
     |            "failover", "roundrobin"
     |
     */
-
     'mailers' => [
+        'resend' => [
+            'transport' => 'resend',
+        ],
+
+        'cloudflare' => [
+            'transport' => 'cloudflare',
+        ],
+
+        'mailgun' => [
+            'transport' => 'mailgun',
+        ],
 
         'smtp' => [
             'transport' => 'smtp',
@@ -113,4 +123,8 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    'replyTo' => [
+        'address' => env('MAIL_REPLY_TO_ADDRESS', 'hell@example.com'),
+        'name' => env('MAIL_REPLY_TO_NAME', 'Noreply'),
+    ],
 ];

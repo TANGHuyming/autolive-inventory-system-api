@@ -18,17 +18,17 @@ class InventoryFactory extends Factory
     public function definition(): array
     {
         $partNames = ["Front Fender", "Front Bumper","Rear Fender", "Rear Bumper", "Side View Mirror LH", "Side View Mirror RH"];
-        $makes = ["Ford", "Changan", "Mazda"];
-        $models = ["Model1", "Model2", "Model3"];
-        $years = ["2022", "2023", "2024"];
+        // $makes = ["Ford", "Changan", "Mazda"];
+        // $models = ["Model1", "Model2", "Model3"];
+        // $years = ["2022", "2023", "2024"];
 
         return [
             //
             "nameEn" => fake()->randomElement($partNames),
             "nameKh" => null,
-            "make" => fake()->randomElement($makes),
-            "model" => fake()->randomElement($models),
-            "year" => fake()->randomElement($years),
+            // "make" => fake()->randomElement($makes),
+            // "model" => fake()->randomElement($models),
+            // "year" => fake()->randomElement($years),
             "code" => fake()->unique()->randomNumber(8, true),
         ];
     }
