@@ -54,6 +54,16 @@ class TransactionMade extends Mailable
                     'telephone' => $transaction->telephone,
                     'transaction_date' => $transaction->transaction_date,
                 ],
+
+                'items' => $transaction->inventories->map(function ($item) {
+                    $shelf = $item->shelves->first();
+                    return [
+                        'nameEn' => $item->nameEn,
+                        'nameKh' => $item->nameKh,
+                        'stock_quantity' => $shelf->pivot->stock_quantity,
+                        'location' => $shelf->name . ' ' . $shelf->bay->name . ' ' . $shelf->bay->warehouse->name,
+                    ];
+                })->toArray(),
             ],
             text: 'transactions.made-text'
         );

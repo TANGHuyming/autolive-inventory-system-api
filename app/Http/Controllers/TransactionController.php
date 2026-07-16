@@ -12,8 +12,6 @@ use App\Http\Requests\TransactionRequest;
 use App\Models\Transaction;
 use App\Models\Inventory;
 
-use function Laravel\Prompts\datatable;
-
 class TransactionController extends Controller
 {
     private $PAGE = 1;
@@ -95,7 +93,13 @@ class TransactionController extends Controller
                 $transaction->inventories()->sync($syncData);
 
                 // Testing for now. Can't be put to production unless I buy a domain
-                // Mail::to($request->user())->send(new TransactionMade($transaction));
+                $recipients = [
+                    [$request->user()],
+                ];
+
+                foreach ($recipients as $recipient) {
+                    Mail::to($recipient)->send(new TransactionMade($transaction));
+                }
 
                 return $transaction;
             });

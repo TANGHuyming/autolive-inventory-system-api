@@ -37,6 +37,21 @@
                                     <td style="padding: 12px 0; color: #18181b; font-size: 14px; font-weight: 600; text-align: right;">{{ \Carbon\Carbon::parse($transaction['transaction_date'])->format('M d, Y \a\t h:i A') }}</td>
                                 </tr>
                             </table>
+
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                                <tr style="background-color: #0f766e; padding: 4px;">
+                                    <td style="padding: 12px 4px; border: 1px solid #e4e4e7; color: #ffffff; font-size: 13px;">Item name</td>
+                                    <td style="padding: 12px 4px; border: 1px solid #e4e4e7; color: #ffffff; font-size: 13px;">Stock Quantity</td>
+                                    <td style="padding: 12px 4px; border: 1px solid #e4e4e7; color: #ffffff; font-size: 13px;">Location</td>
+                                <tr>
+                                @foreach ($items as $item)
+                                    <tr>
+                                        <td style="padding: 12px 4px; border: 1px solid #e4e4e7; color: #18181b; font-size: 14px; font-weight: 600; text-align: left;">{{$item['nameEn']}} - {{$item['nameKh']}}</td>
+                                        <td style="padding: 12px 4px; border: 1px solid #e4e4e7; color: #18181b; font-size: 14px; font-weight: 600; text-align: left;">{{$item['stock_quantity']}}</td>
+                                        <td style="padding: 12px 4px; border: 1px solid #e4e4e7; color: #18181b; font-size: 14px; font-weight: 600; text-align: left;">{{$item['location']}}</td>
+                                    </tr>
+                                @endforeach
+                            </table>
                         </td>
                     </tr>
 
