@@ -17,6 +17,7 @@ class InventoryResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+            "item_id" => $this->id,
             "item_name_en" => $this->nameEn,
             "item_name_kh" => $this->nameKh,
             "item_year" => YearResource::collection($this->whenLoaded("years")),

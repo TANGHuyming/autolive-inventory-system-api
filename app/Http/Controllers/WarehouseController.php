@@ -26,12 +26,11 @@ class WarehouseController extends Controller
             "street" => $request->input("street"),
             "house_number" => $request->input("house_number"),
         ];
-        $page = $request->input("page", $this->PAGE);
         $page_size = $request->input("page_size", $this->PAGE_SIZE);
-        $page_offset = ($page - 1) * $page_size;
 
         try {
             $query = Warehouse::query()
+                ->with(['bays.shelves'])
                 ->when(!empty($data['name']), function ($query) use ($data) {
                     return $query->where('name', 'ILIKE', $data['name']);
                 })
@@ -54,7 +53,7 @@ class WarehouseController extends Controller
                     return $query->where('house_number', 'ILIKE', $data['house_number']);
                 });
 
-            $warehouses = $query->limit($page_size)->skip($page_offset)->get();
+            $warehouses = $query->latest()->paginate($page_size);
             return response()->json([
                 "success" => true,
                 "data" => WarehouseResource::collection($warehouses),
@@ -98,7 +97,7 @@ class WarehouseController extends Controller
     public function show(Warehouse $warehouse)
     {
         try {
-            $warehouse->load(['bays']);
+            $warehouse->load(['bays.shelves']);
             return response()->json([
                 "success" => true,
                 "data" => new WarehouseResource($warehouse),

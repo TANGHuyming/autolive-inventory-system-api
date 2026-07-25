@@ -18,6 +18,7 @@ class TransactionResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+            "transaction_id" => $this->id,
             "warehouse" => new WarehouseResource($this->whenLoaded("warehouse")),
             "approver" => new EmployeeResource($this->whenLoaded("employee")),
             "requester_name" => $this->first_name . ' ' . $this->last_name,

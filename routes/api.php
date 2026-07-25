@@ -7,6 +7,8 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\BayController;
+use App\Http\Controllers\MakeController;
 
 Route::prefix("auth")->group(function () {
     Route::post("register", [AuthController::class, "register"]);
@@ -26,6 +28,9 @@ Route::middleware(["auth:sanctum", "throttle:api"])->group(function () {
     Route::post("inventories/{inventory}", [InventoryController::class, "update"]);
     Route::delete("inventories/{inventory}", [InventoryController::class, "destroy"]);
 
+    // Make endpoints
+    Route::get("makes", [MakeController::class, "index"]);
+
     // Transaction endpoints
     Route::apiResource('transactions', TransactionController::class);
 
@@ -37,6 +42,10 @@ Route::middleware(["auth:sanctum", "throttle:api"])->group(function () {
 
     // Warehouse endpoints
     Route::apiResource('warehouses', WarehouseController::class);
+
+    // Bay endpoints
+    Route::get("bays", [BayController::class, "index"]);
+    Route::get("bays/{bay}", [BayController::class, "show"]);
 
     // Role endpoints
     Route::apiResource('roles', RoleController::class);

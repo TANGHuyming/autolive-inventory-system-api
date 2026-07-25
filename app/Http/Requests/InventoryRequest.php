@@ -29,17 +29,20 @@ class InventoryRequest extends FormRequest
             : "unique:inventories,code";
 
         return [
-            "nameEn" => "string|required|max:255",
-            "nameKh" => "string|nullable|max:255",
-            "make" => "string|required|max:100",
-            "model" => "string|required|max:100",
-            "year" => "string|required|numeric|digits:4",
-            "code" => "string|required|{$codeRule}|max:50",
-            "stock_quantity" => "integer|min:0",
-            "warehouse" => "string|required|max:255",
-            "bay" => "string|required|max:100",
-            "shelf" => "string|required|max:100",
-            "item_image" => "file|max:5120|mimes:jpg,jpeg,png,avif",
+            'items' => ['required', 'array', 'min:1'],
+            'items.*' => ['array'],
+            'items.*.nameEn' => ['required', 'string', 'max:255'],
+            'items.*.nameKh' => ['nullable', 'string', 'max:255'],
+            'items.*.make' => ['required', 'string', 'max:100'],
+            'items.*.model' => ['required', 'string', 'max:100'],
+            'items.*.yearRange' => ['required', 'array', 'min:1'],
+            'items.*.yearRange.*' => ['required', 'digits:4'],
+            'items.*.code' => ['required', 'string', $codeRule, 'max:50'],
+            "items.*.item_image" => "file|max:5120|mimes:jpg,jpeg,png,avif",
+            'items.*.stock_quantity' => ['nullable', 'integer', 'min:0'],
+            "items.*.shelf" => "string|required|max:255",
+            "items.*.bay" => "string|required|max:100",
+            "items.*.warehouse" => "string|required|max:100",
             "method" => "string|in:POST,PUT,PATCH|required",
         ];
     }

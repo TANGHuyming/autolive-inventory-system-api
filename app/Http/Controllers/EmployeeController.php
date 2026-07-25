@@ -60,7 +60,7 @@ class EmployeeController extends Controller
     public function show(Employee $employee)
     {
         try {
-            $employee->load(['role']);
+            $employee->load(['role', 'employeeDocuments', 'transactions']);
             return response()->json([
                 "success" => true,
                 "data" => new EmployeeResource($employee),

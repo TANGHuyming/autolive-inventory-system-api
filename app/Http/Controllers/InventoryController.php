@@ -11,6 +11,7 @@ use App\Models\Year;
 use App\Models\Shelf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Collection;
 
 class InventoryController extends Controller
 {
@@ -37,7 +38,7 @@ class InventoryController extends Controller
             $query = Inventory::search($data["searchQuery"])
                 ->query(function ($query) use ($data) {
                     return $query
-                    ->with(['shelves.bay.warehouse', 'inventoryDocuments', 'years.carModel.make', 'transactions.employee']);
+                    ->with(['shelves.bay.warehouse', 'years.carModel.make']);
                 });
 
             $inventories = $query
@@ -76,72 +77,74 @@ class InventoryController extends Controller
                 throw new \Exception("Invalid method used. Set method to POST");
             }
 
-            $createdInventory = DB::transaction(function () use ($validated) {
-                $item_image_path = Storage::disk("public")->putFile("items", $validated["item_image"]);
-                $newItem = Inventory::create(
-                    $validated
-                );
+            $createdInventories = DB::transaction(function () use ($validated) {
+                $items = collect($validated["items"])->map(function ($item) {
+                    $item_image_path = Storage::disk("public")->putFile("items", $item["item_image"]);
 
-                $query = Year::query()
-                    ->with(["carModel.make"])
-                    ->when(!empty($validated["year"]), function ($yearQuery) use ($validated) {
-                        return $yearQuery
-                            ->where("year", $validated["year"])
-                            ->whereHas(
-                                "carModel",
-                                function ($modelQuery) use ($validated) {
-                                    return $modelQuery->where("name", $validated["model"]);
-                                }
-                            )->whereHas(
-                                "carModel.make",
-                                function ($makeQuery) use ($validated) {
-                                    return $makeQuery->where("name", $validated["make"]);
-                                }
-                            );
-                    });
+                    $newItem = Inventory::create([
+                        'nameEn' => $item['nameEn'],
+                        'nameKh' => $item['nameKh'] ?? null,
+                        'code' => $item['code'],
+                    ]);
 
-                $year = $query->first();
-
-                $newItem->years()->attach($year->id);
-
-                $query = Shelf::query()
-                    ->with(["bay.warehouse"])
-                    ->when(!empty($validated["shelf"]), function ($shelfQuery) use ($validated) {
-                        return $shelfQuery
-                            ->where("name", $validated["shelf"])
-                            ->whereHas("bay", function ($bayQuery) use ($validated) {
-                                return $bayQuery->where("name", $validated["bay"]);
-                            })
-                            ->whereHas("bay.warehouse", function ($warehouseQuery) use ($validated) {
-                                return $warehouseQuery->where("name", $validated["warehouse"]);
+                    collect($item["yearRange"])->each(function ($year) use ($item, $newItem) {
+                        $yearQuery = Year::query()
+                            ->with(["carModel.make"])
+                            ->when(!empty($year), function ($yearQuery) use ($year, $item) {
+                                return $yearQuery
+                                    ->where("year", $year)
+                                    ->whereHas("carModel", function ($modelQuery) use ($item) {
+                                        return $modelQuery->where("name", $item["model"]);
+                                    })
+                                    ->whereHas("carModel.make", function ($makeQuery) use ($item) {
+                                        return $makeQuery->where("name", $item["make"]);
+                                    });
                             });
+
+                        $queriedYear = $yearQuery->first();
+                        $newItem->years()->attach($queriedYear->id);
                     });
 
-                $shelf = $query->first();
+                    $shelfQuery = Shelf::query()
+                        ->with(["bay.warehouse"])
+                        ->when(!empty($item["shelf"]), function ($shelfQuery) use ($item) {
+                            return $shelfQuery
+                                ->where("name", $item["shelf"])
+                                ->whereHas("bay", function ($bayQuery) use ($item) {
+                                    return $bayQuery->where("name", $item["bay"]);
+                                })
+                                ->whereHas("bay.warehouse", function ($warehouseQuery) use ($item) {
+                                    return $warehouseQuery->where("name", $item["warehouse"]);
+                                });
+                        });
 
-                $newItem->shelves()->attach($shelf->id, [
-                    "stock_quantity" => $validated["stock_quantity"],
-                ]);
+                    $shelf = $shelfQuery->first();
+                    $newItem->shelves()->attach($shelf->id, [
+                        "stock_quantity" => $item["stock_quantity"],
+                    ]);
 
-                InventoryDocument::create([
-                    "inventory_id" => $newItem->id,
-                    "file_original_name" => $validated["item_image"]->getClientOriginalName(),
-                    "file_mime_type" => $validated["item_image"]->getMimeType(),
-                    "file_size" => $validated["item_image"]->getSize(),
-                    "file_path" => $item_image_path,
-                    "document_type" => "image",
-                    "status" => "pending",
-                ]);
+                    InventoryDocument::create([
+                        "inventory_id" => $newItem->id,
+                        "file_original_name" => $item["item_image"]->getClientOriginalName(),
+                        "file_mime_type" => $item["item_image"]->getMimeType(),
+                        "file_size" => $item["item_image"]->getSize(),
+                        "file_path" => $item_image_path,
+                        "document_type" => "image",
+                        "status" => "pending",
+                    ]);
 
-                return $newItem;
+                    return $newItem;
+                });
+
+                return $items;
             });
 
-            $createdInventory->load(['shelves.bay.warehouse', 'inventoryDocuments', 'years.carModel.make']);
-            $createdInventory = new InventoryResource($createdInventory);
+            $createdInventories = Collection::make($createdInventories);
+            $createdInventories->load(['shelves.bay.warehouse', 'inventoryDocuments', 'years.carModel.make']);
 
             return response()->json([
                 "success" => true,
-                "data" => $createdInventory,
+                "data" => InventoryResource::collection($createdInventories),
                 "message" => "Item created successfully",
             ]);
         } catch (\Throwable $error) {

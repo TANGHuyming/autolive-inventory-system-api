@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use App\Http\Resources\RoleResource;
 use App\Http\Resources\EmployeeDocumentResource;
+use App\Http\Resources\TransactionResource;
 
 class EmployeeResource extends JsonResource
 {
@@ -17,11 +18,13 @@ class EmployeeResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+            "employee_id" => $this->id,
             "employee_name" => $this->first_name . ' ' . $this->last_name,
             "employee_email" => $this->email,
             "employee_telephone" => $this->telephone,
             "role" => new RoleResource($this->whenLoaded("role")),
             "employee_documents" => EmployeeDocumentResource::collection($this->whenLoaded("employeeDocuments")),
+            "transactions" => TransactionResource::collection($this->whenLoaded("transactions")),
         ];
     }
 }

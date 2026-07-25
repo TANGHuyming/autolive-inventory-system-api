@@ -16,8 +16,10 @@ class MakeResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+            "make_id" => $this->id,
             "make_name" => $this->name,
             "make_country_of_origin" => $this->country_of_origin,
+            "car_models" => CarModelResource::collection($this->whenLoaded('carModels')),
         ];
     }
 }

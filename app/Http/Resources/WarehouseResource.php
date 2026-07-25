@@ -15,6 +15,7 @@ class WarehouseResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+            "warehouse_id" => $this->id,
             "warehouse_name" => $this->name,
             "city" => $this->city,
             "district" => $this->district,

@@ -16,8 +16,9 @@ class ShelfResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+            "shelf_id" => $this->id,
             "shelf_name" => $this->name,
-            "stock_quantity" => $this->pivot->stock_quantity,
+            "stock_quantity" => $this->pivot?->stock_quantity ?? 0,
             "bay" => new BayResource($this->whenLoaded("bay")),
         ];
     }

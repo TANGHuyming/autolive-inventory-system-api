@@ -12,7 +12,7 @@ return new class extends Migration {
     {
         Schema::create('warehouses', function (Blueprint $table) {
             $table->id();
-            $table->string("name");
+            $table->string("name")->unique();
             $table->string("city")->nullable();
             $table->string("district")->nullable();
             $table->string("commune")->nullable();

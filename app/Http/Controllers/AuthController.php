@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use App\Http\Requests\EmployeeRequest;
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
@@ -17,33 +18,23 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         try {
-
             $validated = $request->validate([
                 "email" => "email|required|string",
                 "password" => "string|required",
             ]);
 
-            // sanitize email and password
-            $email = trim($validated["email"]);
-            $password = trim($validated["password"]);
 
-            $employee = Employee::where("email", "=", $email)->first();
-
-            if (!$employee) {
-                throw new \Exception("Employee does not exist");
+            if (!Auth::attempt($request->only('email', 'password'))) {
+                return response()->json(['message' => 'Invalid credentials'], 401);
             }
 
-            if (!Hash::check($password, $employee->password)) {
-                throw new \Exception("Credentials are invalid");
-            }
-
-            $token = $employee->createToken('auth_token', ['*'], now()->addHours(24))->plainTextToken;
+            $user = Auth::user();
+            $user->load(['role']);
 
             return response()->json([
                 "success" => true,
                 "data" => [
-                    "employee" => new EmployeeResource($employee),
-                    "token" => $token,
+                    "employee" => new EmployeeResource($user),
                 ],
                 "message" => "Login successful",
             ]);
@@ -96,7 +87,8 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         try {
-            $request->user()->currentAccessToken()->delete();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
 
             return response()->json([
                 "success" => true,
@@ -115,11 +107,13 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         try {
-            $employee = $request->user();
+            $employee = Auth::user();
 
             if (!$employee) {
                 throw new \Exception("Unauthenticated");
             }
+
+            $employee->load(['role']);
 
             return response()->json([
                 "success" => true,
