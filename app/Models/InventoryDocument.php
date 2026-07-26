@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Inventory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class InventoryDocument extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = ["inventory_id", "file_original_name", "file_mime_type", "file_size", "file_path", "document_type", "status"];
 
     public function inventory()

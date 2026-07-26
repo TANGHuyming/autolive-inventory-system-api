@@ -149,15 +149,15 @@ return [
         'key' => env('MEILISEARCH_KEY'),
         'index-settings' => [
             Inventory::class => [
-                "filterableAttributes" => [],
+                "filterableAttributes" => ["__soft_deleted"],
                 "sortableAttributes" => ["created_at", "nameEn"],
             ],
             Employee::class => [
-                "filterableAttributes" => ["id", "first_name", "last_name", "telephone"],
+                "filterableAttributes" => ["__soft_deleted"],
                 "sortableAttributes" => ["created_at", "first_name", "last_name"],
             ],
             Transaction::class => [
-                "filterableAttributes" => ["id", "first_name", "last_name", "telephone"],
+                "filterableAttributes" => ["__soft_deleted"],
                 "sortableAttributes" => ["created_at", "first_name", "last_name"],
             ],
         ],

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Scout\Searchable;
 use App\Models\Transaction;
 use App\Models\Shelf;
@@ -12,6 +13,7 @@ use App\Models\Year;
 
 class Inventory extends Model
 {
+    use SoftDeletes;
     use HasFactory;
     use Searchable;
 

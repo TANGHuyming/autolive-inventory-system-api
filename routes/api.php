@@ -23,6 +23,7 @@ Route::prefix("auth")->group(function () {
 Route::middleware(["auth:sanctum", "throttle:api"])->group(function () {
     // Inventory endpoints
     Route::get("inventories", [InventoryController::class, "index"]);
+    Route::get("inventories/up-to-date", [InventoryController::class, "indexUpToDate"]);
     Route::get("inventories/{inventory}", [InventoryController::class, "show"]);
     Route::post("inventories", [InventoryController::class, "store"]);
     Route::post("inventories/{inventory}", [InventoryController::class, "update"]);

@@ -11,6 +11,7 @@ use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use App\Http\Requests\EmployeeRequest;
 use Illuminate\Support\Facades\Auth;
+use RyanChandler\LaravelCloudflareTurnstile\Rules\Turnstile;
 
 class AuthController extends Controller
 {
@@ -19,13 +20,14 @@ class AuthController extends Controller
     {
         try {
             $validated = $request->validate([
+                "cf_turnstile_response" => ["required", new Turnstile()],
                 "email" => "email|required|string",
                 "password" => "string|required",
             ]);
 
 
             if (!Auth::attempt($request->only('email', 'password'))) {
-                return response()->json(['message' => 'Invalid credentials'], 401);
+                throw new \Exception("Invalid credentials");
             }
 
             $user = Auth::user();
@@ -53,16 +55,13 @@ class AuthController extends Controller
             $validated = $request->validated();
 
             $createdEmployee = DB::transaction(function () use ($validated) {
-                $avatar_path = Storage::disk('public')->putFile("avatars", $validated["avatar"]);
-                $employee = Employee::create($validated);
-                $employee_document = EmployeeDocument::create([
-                    "employee_id" => $employee->id,
-                    "file_original_name" => $validated["avatar"]->getClientOriginalName(),
-                    "file_mime_type" => $validated["avatar"]->getMimeType(),
-                    "file_path" => $avatar_path,
-                    "file_size" => $validated["avatar"]->getSize(),
-                    "document_type" => "avatar",
-                    "status" => "pending",
+                $employee = Employee::create([
+                    "role_id" => 3, // Magic number but 3 is employee role id
+                    "first_name" => $validated["first_name"],
+                    "last_name" => $validated["last_name"],
+                    "email" => $validated["email"],
+                    "password" => Hash::make($validated["password"]),
+                    "telephone" => $validated["telephone"],
                 ]);
 
                 return $employee;

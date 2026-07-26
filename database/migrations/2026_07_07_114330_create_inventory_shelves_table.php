@@ -16,7 +16,6 @@ return new class extends Migration {
             $table->foreignId("shelf_id")->constrained("shelves");
             $table->integer("stock_quantity");
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 

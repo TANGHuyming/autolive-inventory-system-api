@@ -20,6 +20,7 @@
         "predis/predis": "^3.5",
         "resend/resend-laravel": "^1.4",
         "resend/resend-php": "^1.5",
+        "ryangjchandler/laravel-cloudflare-turnstile": "^3.0",
         "symfony/http-client": "^7.4",
         "symfony/mailgun-mailer": "^7.4",
         "tightenco/ziggy": "^2.4"

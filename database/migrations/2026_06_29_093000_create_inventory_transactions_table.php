@@ -16,7 +16,6 @@ return new class extends Migration {
             $table->foreignId("transaction_id")->constrained("transactions");
             $table->integer("quantity");
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 

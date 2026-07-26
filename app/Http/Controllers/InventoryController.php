@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdateInventoryRequest;
 use App\Http\Resources\InventoryResource;
 use App\Models\InventoryDocument;
 use Illuminate\Http\Request;
@@ -15,8 +16,34 @@ use Illuminate\Database\Eloquent\Collection;
 
 class InventoryController extends Controller
 {
-    private $PAGE = 1;
-    private $PAGE_SIZE = 10;
+    public function indexUpToDate(Request $request)
+    {
+        try {
+            $data = [
+                'limit' => $request->input('limit'),
+            ];
+            $query = Inventory::query()
+                ->with(['shelves.bay.warehouse', 'years.carModel.make']);
+
+            $inventories = $query
+                ->latest()
+                ->paginate($data["limit"] ?? 10);
+
+            $inventories = InventoryResource::collection($inventories);
+
+            return response()->json([
+                "success" => true,
+                "data" => $inventories,
+                "message" => "Inventories retrieved successfully",
+            ]);
+        } catch (\Throwable $error) {
+            return response()->json([
+                "success" => false,
+                "data" => $error->getMessage(),
+                "message" => "Internal server error",
+            ]);
+        }
+    }
 
     /**
      * Display a listing of the resource.
@@ -26,12 +53,7 @@ class InventoryController extends Controller
         // search queries
         $data = [
             "searchQuery" => $request->input("searchQuery"),
-            'page'         => $request->query('page', $this->PAGE),
-            'pageSize'     => $request->query('pageSize', $this->PAGE_SIZE),
-            'nameEn'       => $request->query('nameEn'),
-            'make'         => $request->query('make'),
-            'model'        => $request->query('model'),
-            'year'         => $request->query('year'),
+            "limit" => $request->input("limit"),
         ];
 
         try {
@@ -43,7 +65,7 @@ class InventoryController extends Controller
 
             $inventories = $query
                 ->latest()
-                ->paginate($data["pageSize"]);
+                ->paginate($data["limit"] ?? 10);
 
             $inventories = InventoryResource::collection($inventories);
 
@@ -79,7 +101,6 @@ class InventoryController extends Controller
 
             $createdInventories = DB::transaction(function () use ($validated) {
                 $items = collect($validated["items"])->map(function ($item) {
-                    $item_image_path = Storage::disk("public")->putFile("items", $item["item_image"]);
 
                     $newItem = Inventory::create([
                         'nameEn' => $item['nameEn'],
@@ -123,15 +144,18 @@ class InventoryController extends Controller
                         "stock_quantity" => $item["stock_quantity"],
                     ]);
 
-                    InventoryDocument::create([
-                        "inventory_id" => $newItem->id,
-                        "file_original_name" => $item["item_image"]->getClientOriginalName(),
-                        "file_mime_type" => $item["item_image"]->getMimeType(),
-                        "file_size" => $item["item_image"]->getSize(),
-                        "file_path" => $item_image_path,
-                        "document_type" => "image",
-                        "status" => "pending",
-                    ]);
+                    if (!empty($item["item_image"])) {
+                        $item_image_path = Storage::disk("public")->putFile("items", $item["item_image"]);
+                        InventoryDocument::create([
+                            "inventory_id" => $newItem->id,
+                            "file_original_name" => $item["item_image"]->getClientOriginalName(),
+                            "file_mime_type" => $item["item_image"]->getMimeType(),
+                            "file_size" => $item["item_image"]->getSize(),
+                            "file_path" => $item_image_path,
+                            "document_type" => "image",
+                            "status" => "pending",
+                        ]);
+                    }
 
                     return $newItem;
                 });
@@ -161,13 +185,7 @@ class InventoryController extends Controller
      */
     public function show(Inventory $inventory, Request $request)
     {
-        $data = [
-            "page" => $request->input("page", $this->PAGE),
-            "pageSize" => $request->input("pageSize", $this->PAGE_SIZE),
-        ];
-
         try {
-            $pageOffset = ($data["page"] - 1) * $data["pageSize"];
             $inventory->load(["shelves.bay.warehouse", 'transactions.employee', 'years.carModel.make', 'inventoryDocuments']);
             $formattedInventory = new InventoryResource($inventory);
 
@@ -188,7 +206,7 @@ class InventoryController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Inventory $inventory, InventoryRequest $request)
+    public function update(Inventory $inventory, UpdateInventoryRequest $request)
     {
         try {
             $validated = $request->validated();
@@ -226,31 +244,27 @@ class InventoryController extends Controller
                     $validated
                 );
 
-                $query = Year::query()
-                    ->with(["carModel.make"])
-                    ->when(!empty($validated["year"]), function ($yearQuery) use ($validated) {
-                        return $yearQuery
-                            ->where("year", $validated["year"])
-                            ->whereHas(
-                                "carModel",
-                                function ($modelQuery) use ($validated) {
+                $newYears = collect($validated["yearRange"])->map(function ($year) use ($validated) {
+                    $yearQuery = Year::query()
+                        ->with(["carModel.make"])
+                        ->when(!empty($year), function ($yearQuery) use ($year, $validated) {
+                            return $yearQuery
+                                ->where("year", $year)
+                                ->whereHas("carModel", function ($modelQuery) use ($validated) {
                                     return $modelQuery->where("name", $validated["model"]);
-                                }
-                            )->whereHas(
-                                "carModel.make",
-                                function ($makeQuery) use ($validated) {
+                                })
+                                ->whereHas("carModel.make", function ($makeQuery) use ($validated) {
                                     return $makeQuery->where("name", $validated["make"]);
-                                }
-                            );
-                    });
+                                });
+                        });
 
-                $year = $query->first();
-                $originalYear = $inventory->years()->first()->id;
+                    $queriedYear = $yearQuery->first();
+                    return $queriedYear;
+                })->filter(); // filter null values out
 
-                $inventory->years()->detach($originalYear);
-                $inventory->years()->attach($year->id);
+                $inventory->years()->sync($newYears);
 
-                $query = Shelf::query()
+                $shelfQuery = Shelf::query()
                     ->with(["bay.warehouse"])
                     ->when(!empty($validated["shelf"]), function ($shelfQuery) use ($validated) {
                         return $shelfQuery
@@ -263,11 +277,9 @@ class InventoryController extends Controller
                             });
                     });
 
-                $shelf = $query->first();
-                $originalShelf = $inventory->shelves()->first()->id;
+                $queriedShelf = $shelfQuery->first();
 
-                $inventory->shelves()->detach($originalShelf);
-                $inventory->shelves()->attach($shelf->id, [
+                $inventory->shelves()->sync($queriedShelf->id, [
                     "stock_quantity" => $validated["stock_quantity"],
                 ]);
 
@@ -275,11 +287,10 @@ class InventoryController extends Controller
             });
 
             $updatedItem->load(["shelves.bay.warehouse", "inventoryDocuments", "years.carModel.make"]);
-            $updatedItem = new InventoryResource($updatedItem);
 
             return response()->json([
                 "success" => true,
-                "data" => $updatedItem,
+                "data" => new InventoryResource($updatedItem),
                 "message" => "Item updated successfully",
             ]);
         } catch (\Throwable $error) {
@@ -297,10 +308,15 @@ class InventoryController extends Controller
     public function destroy(Inventory $inventory)
     {
         try {
-            $inventory->years()->delete();
-            $inventory->transactions()->delete();
-            $inventory->inventoryDocuments()->delete();
-            $inventory->delete();
+            DB::transaction(function () use ($inventory) {
+                $inventory->years()->sync([]);
+                $inventory->shelves()->sync([]);
+                $inventory->inventoryDocuments()->delete();
+
+                config(['scout.queue' => false]);
+                $inventory->delete();
+            });
+
             return response()->json([
                 "success" => true,
                 "data" => [],
