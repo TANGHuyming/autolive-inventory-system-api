@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class TransactionRequest extends FormRequest
+class UpdateEmployeeRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -23,13 +23,14 @@ class TransactionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            "items" => "required|array",
-            "employee_id" => "required|string|max:255",
-            "warehouse_id" => "required|string|max:255",
-            "first_name" => "required|string|max:255",
-            "last_name" => "required|string|max:255",
+            //
+            "first_name" => "required|max:255|string",
+            "last_name" => "required|max:255|string",
+            "email" => "required|max:255|email|string",
             "telephone" => "required|string|max:20",
-            "transaction_date" => "required|date",
+            "password" => "nullable|string|max:255",
+            "avatar" => ['nullable', 'file', "max:5120", "mimes:jpg,jpeg,png,avif"],
+            "method" => ['required', 'string', 'in:PUT,PATCH'],
         ];
     }
 }

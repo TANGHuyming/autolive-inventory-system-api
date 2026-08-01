@@ -54,13 +54,17 @@ class InventoryController extends Controller
         $data = [
             "searchQuery" => $request->input("searchQuery"),
             "limit" => $request->input("limit"),
+            "shelfId" => $request->input("shelfId"),
         ];
 
         try {
             $query = Inventory::search($data["searchQuery"])
-                ->query(function ($query) use ($data) {
+                ->when(!empty($data["shelfId"]), function ($query) use ($data) {
+                    return $query->where("shelves.id", $data["shelfId"]);
+                })
+                ->query(function ($query) {
                     return $query
-                    ->with(['shelves.bay.warehouse', 'years.carModel.make']);
+                        ->with(['shelves.bay.warehouse', 'years.carModel.make']);
                 });
 
             $inventories = $query

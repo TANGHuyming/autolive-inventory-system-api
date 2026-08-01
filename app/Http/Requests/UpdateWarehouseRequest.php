@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class TransactionRequest extends FormRequest
+class UpdateWarehouseRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,14 +22,17 @@ class TransactionRequest extends FormRequest
      */
     public function rules(): array
     {
+        $warehouse = $this->route("warehouse");
+
         return [
-            "items" => "required|array",
-            "employee_id" => "required|string|max:255",
-            "warehouse_id" => "required|string|max:255",
-            "first_name" => "required|string|max:255",
-            "last_name" => "required|string|max:255",
-            "telephone" => "required|string|max:20",
-            "transaction_date" => "required|date",
+            //
+            "name" => "required|string|max:255",
+            "city" => "string|max:100|nullable",
+            "district" => "string|max:100|nullable",
+            "commune" => "string|max:100|nullable",
+            "village" => "string|max:100|nullable",
+            "street" => "string|max:100|nullable|unique:warehouses,street,{$warehouse->id}",
+            "house_number" => "nullable|numeric",
         ];
     }
 }

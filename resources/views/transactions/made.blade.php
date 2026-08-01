@@ -46,7 +46,7 @@
                                 <tr>
                                 @foreach ($items as $item)
                                     <tr>
-                                        <td style="padding: 12px 4px; border: 1px solid #e4e4e7; color: #18181b; font-size: 14px; font-weight: 600; text-align: left;">{{$item['nameEn']}} - {{$item['nameKh']}}</td>
+                                        <td style="padding: 12px 4px; border: 1px solid #e4e4e7; color: #18181b; font-size: 14px; font-weight: 600; text-align: left;">{{$item['nameEn']}} {{$item['nameKh']}}</td>
                                         <td style="padding: 12px 4px; border: 1px solid #e4e4e7; color: #18181b; font-size: 14px; font-weight: 600; text-align: left;">{{$item['stock_quantity']}}</td>
                                         <td style="padding: 12px 4px; border: 1px solid #e4e4e7; color: #18181b; font-size: 14px; font-weight: 600; text-align: left;">{{$item['location']}}</td>
                                     </tr>

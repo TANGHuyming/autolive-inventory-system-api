@@ -55,6 +55,7 @@ class Inventory extends Model
 
         $array["shelves"] = $this->shelves->map(function ($shelf) {
             return [
+                "id" => $shelf->id,
                 "name" => $shelf->name,
                 "bay" => [
                     "name" => $shelf->bay->name,

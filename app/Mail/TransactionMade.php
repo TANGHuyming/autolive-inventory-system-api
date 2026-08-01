@@ -44,13 +44,14 @@ class TransactionMade extends Mailable
     public function content(): Content
     {
         $transaction = $this->transaction;
-        $employee = $transaction->employee->first();
+        $employee = $transaction->employee;
+
         return new Content(
             view: 'transactions.made',
             with: [
                 'transaction' => [
-                    'employee_full_name' => $employee->first_name . $employee->last_name,
-                    'full_name' => $transaction->first_name . $transaction->last_name,
+                    'employee_full_name' => $employee->first_name . ' ' . $employee->last_name,
+                    'full_name' => $transaction->first_name . ' ' . $transaction->last_name,
                     'telephone' => $transaction->telephone,
                     'transaction_date' => $transaction->transaction_date,
                 ],

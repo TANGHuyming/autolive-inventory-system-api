@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
-use App\Http\Requests\EmployeeRequest;
+use App\Http\Requests\UpdateEmployeeRequest;
 use App\Http\Resources\EmployeeResource;
 
 class EmployeeController extends Controller
@@ -78,11 +78,13 @@ class EmployeeController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(EmployeeRequest $request, Employee $employee)
+    public function update(UpdateEmployeeRequest $request, Employee $employee)
     {
         try {
             $validated = $request->validated();
-            $validated["password"] = Hash::make($validated["password"]);
+            if (!empty($validated["password"])) {
+                $validated["password"] = Hash::make($validated["password"]);
+            }
 
             if (!array_key_exists("method", $validated)) {
                 throw new \Exception("method field must be specified in request");
@@ -94,9 +96,10 @@ class EmployeeController extends Controller
 
             $updatedEmployee = DB::transaction(function () use ($employee, $validated) {
                 if (!empty($validated["avatar"])) {
-                    $employee_avatar = $employee->employeeDocuments()->where("document_type", "avatar")->first();
                     $avatar_path = Storage::disk('public')->putFile("avatars", $validated["avatar"]);
-                    $employee_avatar->update([
+                    EmployeeDocument::updateOrCreate([
+                        "document_type" => "avatar",
+                    ], [
                         "employee_id" => $employee->id,
                         "file_original_name" => $validated["avatar"]->getClientOriginalName(),
                         "file_mime_type" => $validated["avatar"]->getMimeType(),
@@ -138,7 +141,11 @@ class EmployeeController extends Controller
     public function destroy(Employee $employee)
     {
         try {
-            $employee->delete();
+            DB::transaction(function () use ($employee) {
+                $employee->employeeDocuments()->delete();
+                $employee->delete();
+            });
+
             return response()->json([
                 "success" => true,
                 "data" => [],

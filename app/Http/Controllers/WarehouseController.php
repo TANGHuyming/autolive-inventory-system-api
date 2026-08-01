@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\DB;
 use App\Http\Requests\WarehouseRequest;
+use App\Http\Requests\UpdateWarehouseRequest;
 use App\Http\Resources\WarehouseResource;
 use Illuminate\Http\Request;
 use App\Models\Warehouse;
@@ -76,7 +78,11 @@ class WarehouseController extends Controller
         $validated = $request->validated();
 
         try {
-            $createdWarehouse = Warehouse::create($validated);
+            $createdWarehouse = DB::transaction(function () use ($validated) {
+                $newWarehouse = Warehouse::create($validated);
+                return $newWarehouse;
+            });
+
             return response()->json([
                 "success" => true,
                 "data" => new WarehouseResource($createdWarehouse),
@@ -116,12 +122,16 @@ class WarehouseController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Warehouse $warehouse, WarehouseRequest $request)
+    public function update(Warehouse $warehouse, UpdateWarehouseRequest $request)
     {
         $validated = $request->validated();
 
         try {
-            $warehouse->update($validated);
+            $updatedWarehouse = DB::transaction(function () use ($warehouse, $validated) {
+                $warehouse->update($validated);
+                return $warehouse;
+            });
+
             $warehouse->refresh();
             $warehouse->load(['bays']);
             return response()->json([
@@ -144,7 +154,10 @@ class WarehouseController extends Controller
     public function destroy(Warehouse $warehouse)
     {
         try {
-            $warehouse->delete();
+            DB::transaction(function () use ($warehouse) {
+                $warehouse->delete();
+            });
+
             return response()->json([
                 "success" => true,
                 "data" => [],

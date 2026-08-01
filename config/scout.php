@@ -63,7 +63,7 @@ return [
     |
     */
 
-    'after_commit' => false,
+    'after_commit' => true,
 
     /*
     |--------------------------------------------------------------------------
@@ -148,18 +148,18 @@ return [
         'host' => env('MEILISEARCH_HOST', 'http://localhost:7700'),
         'key' => env('MEILISEARCH_KEY'),
         'index-settings' => [
-            Inventory::class => [
-                "filterableAttributes" => ["__soft_deleted"],
-                "sortableAttributes" => ["created_at", "nameEn"],
-            ],
-            Employee::class => [
-                "filterableAttributes" => ["__soft_deleted"],
-                "sortableAttributes" => ["created_at", "first_name", "last_name"],
-            ],
-            Transaction::class => [
-                "filterableAttributes" => ["__soft_deleted"],
-                "sortableAttributes" => ["created_at", "first_name", "last_name"],
-            ],
+            // Inventory::class => [
+            //     "filterableAttributes" => ["shelves.id", "__soft_deleted"],
+            //     "sortableAttributes" => ["created_at", "nameEn"],
+            // ],
+            // Employee::class => [
+            //     "filterableAttributes" => ["__soft_deleted"],
+            //     "sortableAttributes" => ["created_at", "first_name", "last_name"],
+            // ],
+            // Transaction::class => [
+            //     "filterableAttributes" => ["__soft_deleted"],
+            //     "sortableAttributes" => ["created_at", "first_name", "last_name"],
+            // ],
         ],
     ],
 

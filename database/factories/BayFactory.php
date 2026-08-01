@@ -19,7 +19,7 @@ class BayFactory extends Factory
     public function definition(): array
     {
         return [
-            "name" => strtoupper($this->faker->randomLetter()),
+            "name" => strtoupper($this->faker->randomNumber(5)),
         ];
     }
 }

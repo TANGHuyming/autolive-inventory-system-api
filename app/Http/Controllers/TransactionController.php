@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CreateTransactionRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\TransactionMade;
@@ -67,29 +68,28 @@ class TransactionController extends Controller
 
         try {
             $createdTransaction = DB::transaction(function () use ($validated, $request) {
-                $transaction = Transaction::create(collect($validated)->all());
                 $syncData = [];
 
-                foreach (collect($validated["inventory_ids"])->all() as $inventory_id) {
+                foreach (collect($validated["items"])->all() as $transactedItem) {
                     // check the availability of each item
-                    $item = Inventory::where("id", $inventory_id["inventory_id"])->first();
+                    $item = Inventory::where("id", $transactedItem["inventory_id"])->first();
 
                     if (!$item) {
                         throw new \Exception("Item does not exist");
                     }
 
-                    $shelf = $item->shelves()->where('shelf_id', $inventory_id['shelf_id'])->first();
+                    $shelf = $item->shelves()->first();
                     $stock_quantity = $shelf->pivot->stock_quantity;
 
-                    if ($stock_quantity < $inventory_id["quantity"]) {
+                    if ($stock_quantity < $transactedItem["quantity"]) {
                         throw new \Exception("Quantity is greater than the available stock");
                     }
 
-                    $syncData[$item->id] = ["quantity" => $inventory_id["quantity"]];
-                    $item->shelves()->detach($shelf->id);
-                    $item->shelves()->attach($shelf->id, ["stock_quantity" => $stock_quantity - $inventory_id["quantity"]]);
+                    $syncData[$item->id] = ["quantity" => $transactedItem["quantity"]];
+                    $item->shelves()->sync([$shelf->id => ["stock_quantity" => $stock_quantity - $transactedItem["quantity"]]]);
                 };
 
+                $transaction = Transaction::create(collect($validated)->all());
                 $transaction->inventories()->sync($syncData);
 
                 // Testing for now. Can't be put to production unless I buy a domain
@@ -134,7 +134,7 @@ class TransactionController extends Controller
         $pageOffset = ($data["page"] - 1) * $data["pageSize"];
 
         try {
-            $transaction = $transaction->load(['inventories', 'warehouse', 'employee']);
+            $transaction = $transaction->load(['inventories', 'warehouse.bays.shelves', 'employee']);
             return response()->json([
                 "success" => true,
                 "data" => new TransactionResource($transaction),

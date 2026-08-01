@@ -36,9 +36,9 @@ class DatabaseSeeder extends Seeder
         Warehouse::factory()
             ->has(Bay::factory()
                 ->has(Shelf::factory()
-                    ->count(25))
+                    ->count(4))
                 ->count(25))
-            ->count(5)
+            ->count(2)
             ->create();
 
         // Generate items

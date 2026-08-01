@@ -18,7 +18,7 @@ class ShelfResource extends JsonResource
         return [
             "shelf_id" => $this->id,
             "shelf_name" => $this->name,
-            "stock_quantity" => $this->pivot?->stock_quantity ?? 0,
+            "stock_quantity" => $this->pivot?->stock_quantity,
             "bay" => new BayResource($this->whenLoaded("bay")),
         ];
     }
