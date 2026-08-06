@@ -34,6 +34,11 @@ class InventoryController extends Controller
             return response()->json([
                 "success" => true,
                 "data" => $inventories,
+                "meta" => [
+                    'pagination' => [
+                        "total" => Inventory::count(),
+                    ],
+                ],
                 "message" => "Inventories retrieved successfully",
             ]);
         } catch (\Throwable $error) {
@@ -53,7 +58,8 @@ class InventoryController extends Controller
         // search queries
         $data = [
             "searchQuery" => $request->input("searchQuery"),
-            "limit" => $request->input("limit"),
+            "limit" => (int) ($request->input("limit") ?? 10),
+            "page" => (int) ($request->input("page") ?? 1),
             "shelfId" => $request->input("shelfId"),
         ];
 
@@ -69,13 +75,20 @@ class InventoryController extends Controller
 
             $inventories = $query
                 ->latest()
-                ->paginate($data["limit"] ?? 10);
+                ->paginate($data["limit"]);
 
             $inventories = InventoryResource::collection($inventories);
 
             return response()->json([
                 "success" => true,
                 "data" => $inventories,
+                "meta" => [
+                    'pagination' => [
+                        "total_pages" => ceil(Inventory::count() / $data["limit"]),
+                        "current_page" => $data["page"],
+                        "limit" => $data["limit"],
+                    ],
+                ],
                 "message" => "Inventories retrieved successfully",
             ]);
         } catch (\Throwable $error) {

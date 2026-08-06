@@ -47,6 +47,9 @@ Route::middleware(["auth:sanctum", "throttle:api"])->group(function () {
     // Bay endpoints
     Route::get("bays", [BayController::class, "index"]);
     Route::get("bays/{bay}", [BayController::class, "show"]);
+    Route::post("bays", [BayController::class, "store"]);
+    Route::put("bays/{bay}", [BayController::class, "update"]);
+    Route::delete("bays/{bay}", [BayController::class, "destroy"]);
 
     // Role endpoints
     Route::apiResource('roles', RoleController::class);
