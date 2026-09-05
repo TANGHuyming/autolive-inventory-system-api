@@ -30,19 +30,19 @@ class DatabaseSeeder extends Seeder
             YearSeeder::class,
         ]);
 
-        Employee::factory()->count(10)->create();
+        Employee::factory()->count(5)->create();
 
         // Generate Warehouses which have Bays which have Shelves
         Warehouse::factory()
             ->has(Bay::factory()
                 ->has(Shelf::factory()
                     ->count(4))
-                ->count(25))
+                ->count(5))
             ->count(2)
             ->create();
 
         // Generate items
-        Inventory::factory()->count(100)->create();
+        Inventory::factory()->count(10)->create();
 
         $inventories = Inventory::all();
         $years = Year::all();
