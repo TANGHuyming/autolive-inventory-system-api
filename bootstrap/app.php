@@ -15,7 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         //
         $middleware->trustProxies(at: '*');
         $middleware->statefulApi();
-        $middleware->throttleWithRedis();
+        $middleware->throttle();
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
