@@ -23,7 +23,7 @@ class EmployeeController extends Controller
         //
         $data = [
             "searchQuery" => $request->input("searchQuery"),
-            "pageSize" => $request->input("pageSize", $this->PAGE_SIZE),
+            "limit" => $request->input("limit", $this->PAGE_SIZE),
             "page" => $request->input("page", $this->PAGE),
             "first_name" => $request->input("first_name"),
             "last_name" => $request->input("last_name"),
@@ -38,11 +38,19 @@ class EmployeeController extends Controller
                     ->with(['role']);
                 });
 
-            $employees = $query->latest()->paginate($data["pageSize"]);
+            $total_rows = $query->take(10000)->get()->count();
+            $employees = $query->latest()->paginate($data["limit"]);
 
             return response()->json([
                 "success" => true,
                 "data" => EmployeeResource::collection($employees),
+                "meta" => [
+                    "pagination" => [
+                        "total_pages" => ceil($total_rows / $data["limit"]),
+                        "current_page" => $data["page"],
+                        "limit" => $data["limit"],
+                    ],
+                ],
                 "message" => "Employees retrieved successfully",
             ]);
         } catch (\Throwable $error) {

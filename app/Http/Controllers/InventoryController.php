@@ -73,6 +73,7 @@ class InventoryController extends Controller
                         ->with(['shelves.bay.warehouse', 'years.carModel.make']);
                 });
 
+            $total_rows = $query->take(10000)->get()->count();
             $inventories = $query
                 ->latest()
                 ->paginate($data["limit"]);
@@ -84,7 +85,7 @@ class InventoryController extends Controller
                 "data" => $inventories,
                 "meta" => [
                     'pagination' => [
-                        "total_pages" => ceil(Inventory::count() / $data["limit"]),
+                        "total_pages" => ceil($total_rows / $data["limit"]),
                         "current_page" => $data["page"],
                         "limit" => $data["limit"],
                     ],
@@ -147,13 +148,13 @@ class InventoryController extends Controller
                         ->with(["bay.warehouse"])
                         ->when(!empty($item["shelf"]), function ($shelfQuery) use ($item) {
                             return $shelfQuery
-                                ->where("name", $item["shelf"])
-                                ->whereHas("bay", function ($bayQuery) use ($item) {
-                                    return $bayQuery->where("name", $item["bay"]);
-                                })
-                                ->whereHas("bay.warehouse", function ($warehouseQuery) use ($item) {
-                                    return $warehouseQuery->where("name", $item["warehouse"]);
-                                });
+                                    ->where("name", $item["shelf"])
+                                    ->whereHas("bay", function ($bayQuery) use ($item) {
+                                        return $bayQuery->where("name", $item["bay"]);
+                                    })
+                                    ->whereHas("bay.warehouse", function ($warehouseQuery) use ($item) {
+                                        return $warehouseQuery->where("name", $item["warehouse"]);
+                                    });
                         });
 
                     $shelf = $shelfQuery->first();
@@ -338,6 +339,29 @@ class InventoryController extends Controller
                 "success" => true,
                 "data" => [],
                 "message" => "Item deleted successfully",
+            ]);
+        } catch (\Throwable $error) {
+            return response()->json([
+                "success" => false,
+                "data" => $error->getMessage(),
+                "message" => "Internal server error",
+            ]);
+        }
+    }
+
+    public function summary()
+    {
+        try {
+            $inventoryQuery = fn() => Inventory::query();
+
+            $summary = [
+                "total_count" => $inventoryQuery()->count(),
+            ];
+
+            return response()->json([
+                "success" => true,
+                "data" => $summary,
+                "message" => "Transaction details retrieved successfully",
             ]);
         } catch (\Throwable $error) {
             return response()->json([

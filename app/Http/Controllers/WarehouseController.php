@@ -27,8 +27,9 @@ class WarehouseController extends Controller
             "village" => $request->input("village"),
             "street" => $request->input("street"),
             "house_number" => $request->input("house_number"),
+            "limit" => $request->input("limit", $this->PAGE_SIZE),
+            "page" => $request->input("page", $this->PAGE),
         ];
-        $page_size = $request->input("page_size", $this->PAGE_SIZE);
 
         try {
             $query = Warehouse::query()
@@ -55,10 +56,18 @@ class WarehouseController extends Controller
                     return $query->where('house_number', 'ILIKE', $data['house_number']);
                 });
 
-            $warehouses = $query->latest()->paginate($page_size);
+            $total_rows = $query->get()->count();
+            $warehouses = $query->latest()->paginate($data["limit"]);
             return response()->json([
                 "success" => true,
                 "data" => WarehouseResource::collection($warehouses),
+                "meta" => [
+                    "pagination" => [
+                        "total_pages" => ceil($total_rows / $data["limit"]),
+                        "current_page" => $data["page"],
+                        "limit" => $data["limit"],
+                    ],
+                ],
                 "message" => "Warehouses retrieved successfully",
             ]);
         } catch (\Throwable $error) {

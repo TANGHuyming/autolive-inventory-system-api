@@ -24,6 +24,7 @@ Route::middleware(["auth:sanctum", "throttle:api"])->group(function () {
     // Inventory endpoints
     Route::get("inventories", [InventoryController::class, "index"]);
     Route::get("inventories/up-to-date", [InventoryController::class, "indexUpToDate"]);
+    Route::get("inventories/summary", [InventoryController::class, "summary"]);
     Route::get("inventories/{inventory}", [InventoryController::class, "show"]);
     Route::post("inventories", [InventoryController::class, "store"]);
     Route::post("inventories/{inventory}", [InventoryController::class, "update"]);
@@ -33,7 +34,10 @@ Route::middleware(["auth:sanctum", "throttle:api"])->group(function () {
     Route::get("makes", [MakeController::class, "index"]);
 
     // Transaction endpoints
-    Route::apiResource('transactions', TransactionController::class);
+    Route::get('transactions', [TransactionController::class, 'index']);
+    Route::get('transactions/summary', [TransactionController::class, 'summary']);
+    Route::get('transactions/{transaction}', [TransactionController::class, 'show']);
+    Route::post('transactions', [TransactionController::class, 'store']);
 
     // Employee endpoints
     Route::get("employees", [EmployeeController::class, "index"]);

@@ -26,7 +26,7 @@ class TransactionController extends Controller
         $data = [
             "searchQuery" => $request->input("searchQuery"),
             "page" => $request->input("page", $this->PAGE),
-            "pageSize" => $request->input("pageSize", $this->PAGE_SIZE),
+            "limit" => $request->input("limit", $this->PAGE_SIZE),
             "first_name" => $request->query("first_name"),
             "last_name" => $request->query("last_name"),
             "telephone" => $request->query("telephone"),
@@ -43,10 +43,18 @@ class TransactionController extends Controller
                         });
                 });
 
-            $transactions = $query->latest()->paginate($data["pageSize"]);
+            $total_rows = $query->take(10000)->get()->count();
+            $transactions = $query->latest()->paginate($data["limit"]);
             return response()->json([
                 "success" => true,
                 "data" => TransactionResource::collection($transactions),
+                "meta" => [
+                    "pagination" => [
+                        "total_pages" => ceil($total_rows / $data["limit"]),
+                        "limit" => $data["limit"],
+                        "current_page" => $data["page"],
+                    ],
+                ],
                 "message" => "Transactions retrieved successfully",
             ]);
         } catch (\Throwable $error) {
@@ -138,6 +146,29 @@ class TransactionController extends Controller
             return response()->json([
                 "success" => true,
                 "data" => new TransactionResource($transaction),
+                "message" => "Transaction details retrieved successfully",
+            ]);
+        } catch (\Throwable $error) {
+            return response()->json([
+                "success" => false,
+                "data" => $error->getMessage(),
+                "message" => "Internal server error",
+            ]);
+        }
+    }
+
+    public function summary()
+    {
+        try {
+            $transaction = fn() => Transaction::query();
+
+            $summary = [
+                "total_count" => $transaction()->count(),
+            ];
+
+            return response()->json([
+                "success" => true,
+                "data" => $summary,
                 "message" => "Transaction details retrieved successfully",
             ]);
         } catch (\Throwable $error) {
