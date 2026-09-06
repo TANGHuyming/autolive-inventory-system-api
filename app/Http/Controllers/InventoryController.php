@@ -12,6 +12,7 @@ use App\Models\Year;
 use App\Models\Shelf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Database\Eloquent\Collection;
 
 class InventoryController extends Controller
@@ -63,35 +64,38 @@ class InventoryController extends Controller
             "shelfId" => $request->input("shelfId"),
         ];
 
+        $cacheKey = buildCacheKeyFromQuery("inventories", $request->query());
+
         try {
-            $query = Inventory::search($data["searchQuery"])
-                ->when(!empty($data["shelfId"]), function ($query) use ($data) {
-                    return $query->where("shelves.id", $data["shelfId"]);
-                })
-                ->query(function ($query) {
-                    return $query
-                        ->with(['shelves.bay.warehouse', 'years.carModel.make']);
-                });
+            $inventories = Cache::tags(["inventories"])->remember($cacheKey, 60, function () use ($data) {
+                $query = Inventory::search($data["searchQuery"])
+                    ->when(!empty($data["shelfId"]), function ($query) use ($data) {
+                        return $query->where("shelves.id", $data["shelfId"]);
+                    })
+                    ->query(function ($query) {
+                        return $query
+                            ->with(['shelves.bay.warehouse', 'years.carModel.make']);
+                    });
 
-            $total_rows = $query->take(10000)->get()->count();
-            $inventories = $query
-                ->latest()
-                ->paginate($data["limit"]);
+                $paginated = $query
+                    ->latest()
+                    ->paginate($data["limit"]);
 
-            $inventories = InventoryResource::collection($inventories);
-
-            return response()->json([
-                "success" => true,
-                "data" => $inventories,
-                "meta" => [
-                    'pagination' => [
-                        "total_pages" => ceil($total_rows / $data["limit"]),
-                        "current_page" => $data["page"],
-                        "limit" => $data["limit"],
+                return [
+                    "success" => true,
+                    "data" => InventoryResource::collection($paginated),
+                    "meta" => [
+                        'pagination' => [
+                            "total_pages" => $paginated->lastPage(),
+                            "current_page" => $paginated->currentPage(),
+                            "limit" => $paginated->perPage(),
+                        ],
                     ],
-                ],
-                "message" => "Inventories retrieved successfully",
-            ]);
+                    "message" => "Inventories retrieved successfully",
+                ];
+            });
+
+            return response()->json($inventories);
         } catch (\Throwable $error) {
             return response()->json([
                 "success" => false,
@@ -174,6 +178,8 @@ class InventoryController extends Controller
                             "status" => "pending",
                         ]);
                     }
+
+                    Cache::tags(["inventories"])->flush();
 
                     return $newItem;
                 });
@@ -301,6 +307,8 @@ class InventoryController extends Controller
                     "stock_quantity" => $validated["stock_quantity"],
                 ]);
 
+                Cache::tags(["inventories"])->flush();
+
                 return $inventory;
             });
 
@@ -333,6 +341,7 @@ class InventoryController extends Controller
 
                 config(['scout.queue' => false]);
                 $inventory->delete();
+                Cache::tags(["inventories"])->flush();
             });
 
             return response()->json([

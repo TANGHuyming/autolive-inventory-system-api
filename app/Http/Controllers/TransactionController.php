@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CreateTransactionRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Cache;
 use App\Mail\TransactionMade;
 use RuntimeException;
 use App\Http\Resources\TransactionResource;
@@ -33,30 +34,35 @@ class TransactionController extends Controller
             "transaction_date" => $request->query("transaction_date"),
         ];
 
-        try {
-            $query = Transaction::search($data["searchQuery"])
-                ->query(function ($query) use ($data) {
-                    return $query
-                        ->with(['inventories', 'employee', 'warehouse'])
-                        ->when($data["transaction_date"], function ($q, $v) {
-                            return $q->whereBetween("transaction_date", [$v, now()]);
-                        });
-                });
+        $cacheKey = buildCacheKeyFromQuery("transactions", $request->query());
 
-            $total_rows = $query->take(10000)->get()->count();
-            $transactions = $query->latest()->paginate($data["limit"]);
-            return response()->json([
-                "success" => true,
-                "data" => TransactionResource::collection($transactions),
-                "meta" => [
-                    "pagination" => [
-                        "total_pages" => ceil($total_rows / $data["limit"]),
-                        "limit" => $data["limit"],
-                        "current_page" => $data["page"],
+        try {
+            $transactions = Cache::tags(["transactions"])->remember($cacheKey, 60, function () use ($data) {
+                $query = Transaction::search($data["searchQuery"])
+                    ->query(function ($query) use ($data) {
+                        return $query
+                            ->with(['inventories', 'employee', 'warehouse'])
+                            ->when($data["transaction_date"], function ($q, $v) {
+                                return $q->whereBetween("transaction_date", [$v, now()]);
+                            });
+                    });
+
+                $paginated = $query->latest()->paginate($data["limit"]);
+                return [
+                    "success" => true,
+                    "data" => TransactionResource::collection($paginated),
+                    "meta" => [
+                        'pagination' => [
+                            "total_pages" => $paginated->lastPage(),
+                            "current_page" => $paginated->currentPage(),
+                            "limit" => $paginated->perPage(),
+                        ],
                     ],
-                ],
-                "message" => "Transactions retrieved successfully",
-            ]);
+                    "message" => "Transactions retrieved successfully",
+                ];
+            });
+
+            return response()->json($transactions);
         } catch (\Throwable $error) {
             return response()->json([
                 "success" => false,
@@ -108,6 +114,8 @@ class TransactionController extends Controller
                 foreach ($recipients as $recipient) {
                     Mail::to($recipient)->send(new TransactionMade($transaction));
                 }
+
+                Cache::tags(["transactions"])->flush();
 
                 return $transaction;
             });

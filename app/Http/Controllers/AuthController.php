@@ -64,6 +64,7 @@ class AuthController extends Controller
                     "telephone" => $validated["telephone"],
                 ]);
 
+                Cache::tags(["employees"])->flush();
                 return $employee;
             });
 

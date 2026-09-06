@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use App\Http\Requests\WarehouseRequest;
 use App\Http\Requests\UpdateWarehouseRequest;
@@ -31,45 +32,49 @@ class WarehouseController extends Controller
             "page" => $request->input("page", $this->PAGE),
         ];
 
-        try {
-            $query = Warehouse::query()
-                ->with(['bays.shelves'])
-                ->when(!empty($data['name']), function ($query) use ($data) {
-                    return $query->where('name', 'ILIKE', $data['name']);
-                })
-                ->when(!empty($data['city']), function ($query) use ($data) {
-                    return $query->where('city', 'ILIKE', $data['city']);
-                })
-                ->when(!empty($data['district']), function ($query) use ($data) {
-                    return $query->where('district', 'ILIKE', $data['district']);
-                })
-                ->when(!empty($data['commune']), function ($query) use ($data) {
-                    return $query->where('commune', 'ILIKE', $data['commune']);
-                })
-                ->when(!empty($data['village']), function ($query) use ($data) {
-                    return $query->where('village', 'ILIKE', $data['village']);
-                })
-                ->when(!empty($data['street']), function ($query) use ($data) {
-                    return $query->where('street', 'ILIKE', $data['street']);
-                })
-                ->when(!empty($data['house_number']), function ($query) use ($data) {
-                    return $query->where('house_number', 'ILIKE', $data['house_number']);
-                });
+        $cacheKey = buildCacheKeyFromQuery("warehouses", $request->query());
 
-            $total_rows = $query->get()->count();
-            $warehouses = $query->latest()->paginate($data["limit"]);
-            return response()->json([
-                "success" => true,
-                "data" => WarehouseResource::collection($warehouses),
-                "meta" => [
-                    "pagination" => [
-                        "total_pages" => ceil($total_rows / $data["limit"]),
-                        "current_page" => $data["page"],
-                        "limit" => $data["limit"],
+        try {
+            $warehouses = Cache::tags(["warehouses"])->remember($cacheKey, 60, function () use ($data) {
+                $query = Warehouse::query()
+                    ->with(['bays.shelves'])
+                    ->when(!empty($data['name']), function ($query) use ($data) {
+                        return $query->where('name', 'ILIKE', $data['name']);
+                    })
+                    ->when(!empty($data['city']), function ($query) use ($data) {
+                        return $query->where('city', 'ILIKE', $data['city']);
+                    })
+                    ->when(!empty($data['district']), function ($query) use ($data) {
+                        return $query->where('district', 'ILIKE', $data['district']);
+                    })
+                    ->when(!empty($data['commune']), function ($query) use ($data) {
+                        return $query->where('commune', 'ILIKE', $data['commune']);
+                    })
+                    ->when(!empty($data['village']), function ($query) use ($data) {
+                        return $query->where('village', 'ILIKE', $data['village']);
+                    })
+                    ->when(!empty($data['street']), function ($query) use ($data) {
+                        return $query->where('street', 'ILIKE', $data['street']);
+                    })
+                    ->when(!empty($data['house_number']), function ($query) use ($data) {
+                        return $query->where('house_number', 'ILIKE', $data['house_number']);
+                    });
+
+                $paginated = $query->latest()->paginate($data["limit"]);
+                return [
+                    "success" => true,
+                    "data" => WarehouseResource::collection($paginated),
+                    "meta" => [
+                        'pagination' => [
+                            "total_pages" => $paginated->lastPage(),
+                            "current_page" => $paginated->currentPage(),
+                            "limit" => $paginated->perPage(),
+                        ],
                     ],
-                ],
-                "message" => "Warehouses retrieved successfully",
-            ]);
+                    "message" => "Warehouses retrieved successfully",
+                ];
+            });
+            return response()->json($warehouses);
         } catch (\Throwable $error) {
             return response()->json([
                 "success" => false,
@@ -89,6 +94,7 @@ class WarehouseController extends Controller
         try {
             $createdWarehouse = DB::transaction(function () use ($validated) {
                 $newWarehouse = Warehouse::create($validated);
+                Cache::tags(["warehouses"])->flush();
                 return $newWarehouse;
             });
 
@@ -138,6 +144,7 @@ class WarehouseController extends Controller
         try {
             $updatedWarehouse = DB::transaction(function () use ($warehouse, $validated) {
                 $warehouse->update($validated);
+                Cache::tags(["warehouses"])->flush();
                 return $warehouse;
             });
 
@@ -165,6 +172,7 @@ class WarehouseController extends Controller
         try {
             DB::transaction(function () use ($warehouse) {
                 $warehouse->delete();
+                Cache::tags(["warehouses"])->flush();
             });
 
             return response()->json([

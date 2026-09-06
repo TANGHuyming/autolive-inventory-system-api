@@ -10,6 +10,7 @@ use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use App\Http\Requests\UpdateEmployeeRequest;
 use App\Http\Resources\EmployeeResource;
+use Illuminate\Support\Facades\Cache;
 
 class EmployeeController extends Controller
 {
@@ -31,28 +32,54 @@ class EmployeeController extends Controller
             "telephone" => $request->input("telephone"),
         ];
 
+        $cacheKey = buildCacheKeyFromQuery("employees", $request->query());
+
         try {
-            $query = Employee::search($data["searchQuery"])
-                ->query(function ($query) use ($data) {
-                    return $query
-                    ->with(['role']);
-                });
+            $employees = Cache::tags(["employees"])->remember($cacheKey, 60, function () use ($data) {
+                $query = Employee::search($data["searchQuery"])
+                    ->query(function ($query) use ($data) {
+                        return $query
+                        ->with(['role']);
+                    });
 
-            $total_rows = $query->take(10000)->get()->count();
-            $employees = $query->latest()->paginate($data["limit"]);
+                $paginated = $query->latest()->paginate($data["limit"]);
 
-            return response()->json([
-                "success" => true,
-                "data" => EmployeeResource::collection($employees),
-                "meta" => [
-                    "pagination" => [
-                        "total_pages" => ceil($total_rows / $data["limit"]),
-                        "current_page" => $data["page"],
-                        "limit" => $data["limit"],
+                return [
+                    "success" => true,
+                    "data" => EmployeeResource::collection($paginated),
+                    "meta" => [
+                        "pagination" => [
+                            "total_pages" => ceil($paginated->total() / $data["limit"]),
+                            "current_page" => $paginated->currentPage(),
+                            "limit" => $paginated->perPage(),
+                        ],
                     ],
-                ],
-                "message" => "Employees retrieved successfully",
-            ]);
+                    "message" => "Employees retrieved successfully",
+                ];
+            });
+
+            return response()->json($employees);
+            //
+            // $query = Employee::search($data["searchQuery"])
+            //     ->query(function ($query) use ($data) {
+            //         return $query
+            //         ->with(['role']);
+            //     });
+            //
+            // $paginated = $query->latest()->paginate($data["limit"]);
+            //
+            // return response()->json([
+            //     "success" => true,
+            //     "data" => EmployeeResource::collection($paginated),
+            //     "meta" => [
+            //         "pagination" => [
+            //             "total_pages" => ceil($paginated->total() / $data["limit"]),
+            //             "current_page" => $paginated->currentPage(),
+            //             "limit" => $paginated->perPage(),
+            //         ],
+            //     ],
+            //     "message" => "Employees retrieved successfully",
+            // ]);
         } catch (\Throwable $error) {
             return response()->json([
                 "success" => false,
@@ -122,6 +149,7 @@ class EmployeeController extends Controller
                     $validated,
                 );
 
+                Cache::tags(["employees"])->flush();
                 return $employee;
             });
 
@@ -152,6 +180,7 @@ class EmployeeController extends Controller
             DB::transaction(function () use ($employee) {
                 $employee->employeeDocuments()->delete();
                 $employee->delete();
+                Cache::tags(["employees"])->flush();
             });
 
             return response()->json([
