@@ -175,7 +175,7 @@ class TransactionController extends Controller
                     "total_count" => $transaction()->count(),
                 ];
                 return $summary;
-            })
+            });
 
             return response()->json([
                 "success" => true,
