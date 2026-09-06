@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use App\Http\Requests\EmployeeRequest;
@@ -87,6 +88,7 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         try {
+            Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 

@@ -361,11 +361,14 @@ class InventoryController extends Controller
     public function summary()
     {
         try {
-            $inventoryQuery = fn() => Inventory::query();
-
-            $summary = [
-                "total_count" => $inventoryQuery()->count(),
-            ];
+            $cacheKey = buildCacheKeyFromQuery("inventories_summary", []);
+            $summary = Cache::tags(["inventories"])->remember($cacheKey, 60, function () {
+                $inventoryQuery = fn() => Inventory::query();
+                $summary = [
+                    "total_count" => $inventoryQuery()->count(),
+                ];
+                return $summary;
+            });
 
             return response()->json([
                 "success" => true,

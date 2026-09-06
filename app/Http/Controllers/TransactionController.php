@@ -168,11 +168,14 @@ class TransactionController extends Controller
     public function summary()
     {
         try {
-            $transaction = fn() => Transaction::query();
-
-            $summary = [
-                "total_count" => $transaction()->count(),
-            ];
+            $cacheKey = buildCacheKeyFromQuery("transactions_summary", []);
+            $summary = Cache::tags(["transactions"])->remember($cacheKey, 60, function () {
+                $transaction = fn() => Transaction::query();
+                $summary = [
+                    "total_count" => $transaction()->count(),
+                ];
+                return $summary;
+            })
 
             return response()->json([
                 "success" => true,
